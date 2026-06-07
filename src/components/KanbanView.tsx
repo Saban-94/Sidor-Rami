@@ -4,9 +4,87 @@ import { db, handleFirestoreError, OperationType } from "../firebase";
 import { Order, Driver } from "../types";
 
 import { 
-  Package, MapPin, Truck, Calendar, Clock, Play, CheckCircle, XCircle, Plus, Search, Layers, Navigation, ChevronRight, Check, Sparkles, Filter, MessageSquare, Users
+  Package, MapPin, Truck, Calendar, Clock, Play, CheckCircle, XCircle, Plus, Search, Layers, Navigation, ChevronRight, Check, Sparkles, Filter, MessageSquare, Users, History, Map
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+
+interface MapPreviewProps {
+  destination: string;
+}
+
+const MapPreview = ({ destination }: MapPreviewProps) => {
+  return (
+    <div className="bg-slate-900 rounded-2xl h-48 relative overflow-hidden border border-slate-800 shadow-inner flex flex-col justify-between p-3.5" id="drawer-map-preview">
+      {/* Visual SVG Map Background */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none">
+        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#FFFFFF" strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+          <path d="M -10 40 Q 150 120 400 60" fill="none" stroke="#FFFFFF" strokeWidth="1.5" strokeDasharray="4 2" />
+          <path d="M 50 -20 Q 180 180 320 220" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+          <path d="M 120 40 L 220 180" fill="none" stroke="#FFFFFF" strokeWidth="1" />
+        </svg>
+      </div>
+
+      <div className="absolute inset-0 pointer-events-none">
+        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <path 
+            d="M 50 140 Q 180 80 300 60" 
+            fill="none" 
+            stroke="#10B981" 
+            strokeWidth="3.5" 
+            strokeLinecap="round"
+            style={{
+              strokeDasharray: "8 4",
+            }}
+          />
+        </svg>
+      </div>
+
+      <div className="absolute left-[50px] top-[140px] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+        </span>
+        <span className="bg-slate-950/85 text-[7.5px] font-black text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 shadow-xs mt-1 backdrop-blur-xs select-none">
+          חצר אשדוד
+        </span>
+      </div>
+
+      <div className="absolute left-[300px] top-[60px] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+        <MapPin className="w-5 h-5 text-rose-500" />
+        <span className="bg-slate-950/85 text-[7.5px] font-black text-rose-400 px-1.5 py-0.5 rounded border border-rose-500/20 shadow-xs mt-0.5 backdrop-blur-xs select-none max-w-[120px] truncate">
+          {destination || "יעד פריקה"}
+        </span>
+      </div>
+
+      <div className="relative z-10 flex justify-between items-center w-full bg-slate-950/75 backdrop-blur-md rounded-xl p-2.5 border border-white/5 shadow-md">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+            <Truck className="w-3.5 h-3.5 text-emerald-400" />
+          </div>
+          <div className="text-right">
+            <span className="text-[7.5px] text-slate-400 font-black uppercase tracking-widest block">נתיב אספקה פעיל</span>
+            <span className="text-[10px] text-slate-200 font-extrabold block truncate max-w-[150px]">{destination}</span>
+          </div>
+        </div>
+        <div className="text-left font-mono">
+          <span className="text-[7.5px] text-emerald-400 font-extrabold uppercase bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
+            GPS פעיל
+          </span>
+        </div>
+      </div>
+
+      <div className="relative z-10 self-start text-[8.5px] font-extrabold text-slate-300 bg-slate-950/50 px-2 py-0.5 rounded backdrop-blur-xs">
+        קנ"מ 1:25,000 | מניעת סיכונים פתוחה
+      </div>
+    </div>
+  );
+};
 
 interface KanbanViewProps {
   drivers: Driver[];
@@ -546,18 +624,7 @@ export function KanbanView({ drivers, setActiveTab }: KanbanViewProps) {
                                   </span>
                                 </div>
                               </div>
-                              <span className={`px-2 py-0.5 text-[8px] font-black rounded-lg uppercase tracking-tight ${getStatusBadgeStyles(st)}`}>
-                                {getStatusHebrew(st)}
-                              </span>
-                            </div>
-
-                            {/* Destination info */}
-                            <div className="flex items-start gap-1.5 mt-1 text-[10px] text-gray-500">
-                              <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
-                              <span className="truncate leading-normal">{o.destination}</span>
-                            </div>
-
-                            {/* Driver and eta row */}
+                              <span className={`px                            {/* Driver and eta row */}
                             <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100/75 flex-wrap gap-2">
                               <div className="flex items-center gap-1.5">
                                 <div className="w-5 h-5 rounded-full bg-gray-900 text-white flex items-center justify-center text-[8px] font-black uppercase">
@@ -587,159 +654,237 @@ export function KanbanView({ drivers, setActiveTab }: KanbanViewProps) {
         </div>
       )}
 
-      {/* 2. Apple-Maps Style Bottom Sheet Drawer for Details */}
+      {/* 2. Slide-Over Drawer for Details (Framer Motion) */}
       <AnimatePresence>
         {selectedOrder && (
-          <div className="fixed inset-0 bg-black/55 z-50 flex items-end justify-center" id="detail-overlay">
-            <motion.div 
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 26, stiffness: 210 }}
-              className="bg-[#FDFDFF] w-full max-w-md rounded-t-[2.5rem] p-6 text-right flex flex-col border-t border-gray-100"
-              style={{ maxHeight: "85vh" }}
-              id="detail-container"
-            >
-              {/* Drag Handle block */}
-              <div 
-                className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-5 cursor-pointer" 
-                onClick={() => setSelectedOrder(null)}
-              />
+          <div className="fixed inset-0 z-50 flex justify-start" id="detail-overlay">
+            {/* Backdrop filter */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedOrder(null)}
+              className="absolute inset-0 bg-black/45 backdrop-blur-xs cursor-pointer"
+            />
+            
+            {(() => {
+              const customerHistory = orders.filter(
+                o => o.customerName === selectedOrder.customerName && o.id !== selectedOrder.id
+              );
               
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-150 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
-                    הזמנה #{selectedOrder.orderNumber}
-                  </span>
-                  <h3 className="text-lg font-black text-gray-900 mt-2">{selectedOrder.customerName}</h3>
-                </div>
-                <button 
-                  onClick={() => setSelectedOrder(null)}
-                  className="text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 transition-all p-2 rounded-full cursor-pointer h-9 w-9 flex items-center justify-center"
+              return (
+                <motion.div 
+                  initial={{ x: "-100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "-100%" }}
+                  transition={{ type: "spring", damping: 28, stiffness: 220 }}
+                  className="relative bg-[#FDFDFF] w-full max-w-md sm:max-w-md h-full border-r border-gray-150/70 flex flex-col shadow-2xl text-right z-10"
+                  id="detail-container"
                 >
-                  <XCircle className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-
-              {/* Scrollable specs frame */}
-              <div className="space-y-4 text-xs overflow-y-auto max-h-[52vh] pr-1 pl-1">
-                {/* Active fast status update */}
-                <div>
-                  <span className="text-[9px] font-black text-gray-400 block mb-1.5 uppercase tracking-wide">עדכון מצב עבודה</span>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <button 
-                      onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "pending")}
-                      className={`py-2 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                        selectedOrder.status === "pending" ? "bg-amber-500 border-amber-500 text-white shadow-xs" : "bg-gray-50 border-gray-150 text-gray-500 hover:bg-gray-100"
-                      }`}
-                    >
-                      <Clock className="w-3.5 h-3.5 shrink-0" />
-                      ממתין
-                    </button>
-                    <button 
-                      onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "in_transit")}
-                      className={`py-2 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                        selectedOrder.status === "in_transit" ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" : "bg-gray-50 border-gray-150 text-gray-500 hover:bg-gray-100"
-                      }`}
-                    >
-                      <Play className="w-3.5 h-3.5 shrink-0" />
-                      בדרך
-                    </button>
-                    <button 
-                      onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "delivered")}
-                      className={`py-2 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                        selectedOrder.status === "delivered" ? "bg-emerald-600 border-emerald-600 text-white shadow-xs" : "bg-gray-50 border-gray-150 text-gray-500 hover:bg-gray-100"
-                      }`}
-                    >
-                      <CheckCircle className="w-3.5 h-3.5 shrink-0" />
-                      נמסר
-                    </button>
-                  </div>
-                </div>
-
-                {/* Info Card specifications grid */}
-                <div className="bg-gray-50/70 p-4.5 rounded-[1.8rem] border border-gray-150/40 space-y-3.5">
-                  <div className="flex items-start gap-2.5">
-                    <MapPin className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
+                  {/* Side Drawer Header */}
+                  <div className="p-5 border-b border-gray-150/50 flex justify-between items-start bg-white/95 backdrop-blur-xs">
                     <div>
-                      <span className="text-[9px] font-black text-gray-400 uppercase">יעד פריקה בשטח</span>
-                      <p className="font-extrabold text-gray-900 text-[11px] mt-0.5">{selectedOrder.destination}</p>
+                      <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-150/50 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono inline-block">
+                        הזמנה #{selectedOrder.orderNumber}
+                      </span>
+                      <h3 className="text-md font-black text-gray-900 mt-2">{selectedOrder.customerName}</h3>
                     </div>
+                    <button 
+                      onClick={() => setSelectedOrder(null)}
+                      className="text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-250/60 transition-all p-2 rounded-full cursor-pointer h-9 w-9 flex items-center justify-center select-none active:scale-90"
+                    >
+                      <XCircle className="w-5 h-5 text-gray-500" />
+                    </button>
                   </div>
 
-                  {selectedOrder.items && (
-                    <div className="flex items-start gap-2.5 pt-2 border-t border-gray-100">
-                      <Package className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="text-[9px] font-black text-gray-400 uppercase">תכולת מטען וציוד עזר</span>
-                        <p className="font-semibold text-gray-800 text-[11px] mt-0.5">{selectedOrder.items}</p>
+                  {/* Scrollable Frame Inside the Drawer */}
+                  <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs scrollbar-none">
+                    {/* Active Fast Status Update */}
+                    <div>
+                      <span className="text-[9px] font-black text-gray-400 block mb-1.5 uppercase tracking-wide">עדכון מצב עבודה</span>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <button 
+                          onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "pending")}
+                          className={`py-2 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                            selectedOrder.status === "pending" ? "bg-amber-500 border-amber-500 text-white shadow-xs" : "bg-gray-50 border-gray-150 text-gray-500 hover:bg-gray-100"
+                          }`}
+                        >
+                          <Clock className="w-3.5 h-3.5 shrink-0" />
+                          ממתין
+                        </button>
+                        <button 
+                          onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "in_transit")}
+                          className={`py-2 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                            selectedOrder.status === "in_transit" ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" : "bg-gray-50 border-gray-150 text-gray-500 hover:bg-gray-100"
+                          }`}
+                        >
+                          <Play className="w-3.5 h-3.5 shrink-0" />
+                          בדרך
+                        </button>
+                        <button 
+                          onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "delivered")}
+                          className={`py-2 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                            selectedOrder.status === "delivered" ? "bg-emerald-600 border-emerald-600 text-white shadow-xs" : "bg-gray-50 border-gray-150 text-gray-500 hover:bg-gray-100"
+                          }`}
+                        >
+                          <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                          נמסר
+                        </button>
                       </div>
                     </div>
-                  )}
 
-                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-                    <div className="flex items-start gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-[9px] font-black text-gray-400 uppercase">תאריך אספקה</span>
-                        <p className="text-[10px] font-bold text-gray-800 mt-0.5">{selectedOrder.date}</p>
+                    {/* Integrated Styled Map Preview */}
+                    <div className="space-y-1.5">
+                      <span className="text-[9px] font-black text-gray-400 block uppercase tracking-wide">ניווט ויזואלי ומפת מסלול קומקס</span>
+                      <MapPreview destination={selectedOrder.destination} />
+                    </div>
+
+                    {/* Info Card Specifications Grid */}
+                    <div className="bg-gray-50/70 p-4.5 rounded-[1.8rem] border border-gray-150/40 space-y-3.5">
+                      <div className="flex items-start gap-2.5">
+                        <MapPin className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-[9px] font-black text-gray-400 uppercase">יעד פריקה בשטח</span>
+                          <p className="font-extrabold text-gray-900 text-[11px] mt-0.5">{selectedOrder.destination}</p>
+                        </div>
+                      </div>
+
+                      {selectedOrder.items && (
+                        <div className="flex items-start gap-2.5 pt-2 border-t border-gray-100">
+                          <Package className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <span className="text-[9px] font-black text-gray-400 uppercase">תכולת מטען וציוד עזר</span>
+                            <p className="font-semibold text-gray-805 text-gray-800 text-[11px] mt-0.5">{selectedOrder.items}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                        <div className="flex items-start gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-[9px] font-black text-gray-400 uppercase">תאריך אספקה</span>
+                            <p className="text-[10px] font-bold text-gray-800 mt-0.5">{selectedOrder.date}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-[9px] font-black text-gray-400 uppercase">שעת יציאה</span>
+                            <p className="text-[10px] font-bold text-gray-800 mt-0.5">{selectedOrder.time || "לא נקבעה"}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                        <div>
+                          <span className="text-[9px] font-black text-gray-400 uppercase">מחסן מקור</span>
+                          <p className="text-[10px] font-bold text-gray-800 mt-0.5">{selectedOrder.warehouse || "חצר אשדוד"}</p>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-gray-400 uppercase font-sans">מסמכים / תעודות</span>
+                          <p className="text-[10px] font-bold text-gray-800 mt-0.5 font-mono">{selectedOrder.documentIds || "אין מסמכים"}</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-[9px] font-black text-gray-400 uppercase">שעת יציאה</span>
-                        <p className="text-[10px] font-bold text-gray-800 mt-0.5">{selectedOrder.time || "לא נקבעה"}</p>
+
+                    {/* Integrated Customer Purchase History List */}
+                    <div className="bg-gray-50/70 p-4 rounded-[1.8rem] border border-gray-150/40 space-y-3">
+                      <div className="flex items-center gap-1.5 px-0.5">
+                        <History className="w-4 h-4 text-indigo-600 shrink-0" />
+                        <span className="text-[10px] font-black text-gray-900 uppercase">היסטוריית הזמנות ({customerHistory.length})</span>
+                      </div>
+                      
+                      {customerHistory.length === 0 ? (
+                        <p className="text-[10px] text-gray-400 font-bold px-0.5">לא נמצאו הזמנות עבר נוספות ללקוח זה במערכת.</p>
+                      ) : (
+                        <div className="space-y-2 max-h-[160px] overflow-y-auto scrollbar-none pr-0.5 pl-0.5">
+                          {customerHistory.map((past, pIdx) => (
+                            <div 
+                              key={past.id || pIdx} 
+                              onClick={() => setSelectedOrder(past)}
+                              className="bg-white hover:bg-indigo-50/25 border border-gray-150 rounded-xl p-2.5 flex justify-between items-center transition-all cursor-pointer select-none active:scale-98"
+                            >
+                              <div className="text-right">
+                                <span className="text-[9px] font-mono font-black text-indigo-600 block leading-none">#{past.orderNumber}</span>
+                                <span className="text-[10px] font-extrabold text-gray-800 block truncate max-w-[120px] mt-1">{past.items || "מוצרים כלליים"}</span>
+                                <span className="text-[8px] text-gray-405 text-gray-400 block font-mono mt-0.5">{past.date}</span>
+                              </div>
+                              <div className="text-left flex flex-col items-end gap-1.5">
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black block leading-none uppercase ${getStatusBadgeStyles(past.status)}`}>
+                                  {getStatusHebrew(past.status)}
+                                </span>
+                                <span className="text-[8.5px] text-gray-550 font-bold block max-w-[110px] truncate">{past.destination}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Driver Select Picker */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-wide">שיבוץ נהג ומוביל</label>
+                      <select
+                        value={selectedOrder.driverId || ""}
+                        onChange={(e) => selectedOrder.id && handleAssignDriverAndEta(selectedOrder.id, e.target.value, selectedOrder.eta || "טרם חושב")}
+                        className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs text-gray-800 focus:ring-1 focus:ring-gray-900 outline-none font-medium h-10 cursor-pointer"
+                      >
+                        <option value="">-- ללא שיבוץ (סדרן) --</option>
+                        {drivers.map(d => (
+                          <option key={d.id} value={d.id}>
+                            {d.name} ({d.vehicleType === 'crane' ? 'מנוף' : 'משאית'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* AI-Powered Prediction Module */}
+                    <div className="bg-[#FFFBEB] border border-amber-200/70 rounded-[1.8rem] p-4 flex flex-col gap-2">
+                      <div className="flex justify-between items-center flex-wrap gap-2">
+                        <span className="text-[10px] font-black text-[#B45309] flex items-center gap-1 uppercase tracking-wider">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                          חיזוי זמן הגעה משוער (Comax & Gemini API)
+                        </span>
+                        <button 
+                          onClick={() => handlePredictEtaAPI(selectedOrder)}
+                          className="bg-gray-900 hover:bg-black text-white text-[9px] font-black px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                        >
+                          <Navigation className="w-3.5 h-3.5 text-amber-400" />
+                          עדכן חיזוי AI
+                        </button>
+                      </div>
+                      <div className="bg-white/90 border border-amber-100 rounded-xl p-3">
+                        <p className="text-[11px] text-gray-800 font-medium leading-relaxed font-mono">
+                          {selectedOrder.eta || "ממתין לפקודת עיבוד זמני פקק הובלה..."}
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-                    <div>
-                      <span className="text-[9px] font-black text-gray-400 uppercase">מחסן מקור</span>
-                      <p className="text-[10px] font-bold text-gray-800 mt-0.5">{selectedOrder.warehouse || "חצר אשדוד"}</p>
-                    </div>
-                    <div>
-                      <span className="text-[9px] font-black text-gray-400 uppercase font-sans">מסמכים / תעודות</span>
-                      <p className="text-[10px] font-bold text-gray-800 mt-0.5 font-mono">{selectedOrder.documentIds || "אין מסמכים"}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Driver select picker */}
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-wide">שיבוץ נהג ומוביל</label>
-                  <select
-                    value={selectedOrder.driverId || ""}
-                    onChange={(e) => selectedOrder.id && handleAssignDriverAndEta(selectedOrder.id, e.target.value, selectedOrder.eta || "טרם חושב")}
-                    className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs text-gray-800 focus:ring-1 focus:ring-gray-900 outline-none font-medium h-10 cursor-pointer"
-                  >
-                    <option value="">-- ללא שיבוץ (סדרן) --</option>
-                    {drivers.map(d => (
-                      <option key={d.id} value={d.id}>
-                        {d.name} ({d.vehicleType === 'crane' ? 'מנוף' : 'משאית'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* AI-powered prediction module */}
-                <div className="bg-[#FFFBEB] border border-amber-200/70 rounded-[1.8rem] p-4 flex flex-col gap-2">
-                  <div className="flex justify-between items-center flex-wrap gap-2">
-                    <span className="text-[10px] font-black text-[#B45309] flex items-center gap-1 uppercase tracking-wider">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                      חיזוי זמן הגעה משוער (Comax & Gemini API)
-                    </span>
+                  {/* Drawer Action Sheet Footer */}
+                  <div className="p-5 border-t border-gray-150/50 bg-white">
                     <button 
-                      onClick={() => handlePredictEtaAPI(selectedOrder)}
-                      className="bg-gray-900 hover:bg-black text-white text-[9px] font-black px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                      onClick={() => setSelectedOrder(null)}
+                      className="w-full bg-gray-900 hover:bg-black text-white font-black py-3 rounded-xl text-center text-xs transition-transform active:scale-98 cursor-pointer select-none"
                     >
-                      <Navigation className="w-3 h-3 text-amber-400" />
-                      עדכן חיזוי AI
+                      סגור ורענן לוח
                     </button>
                   </div>
-                  <div className="bg-white/90 border border-amber-100 rounded-xl p-3">
-                    <p className="text-[11px] text-gray-800 font-medium leading-relaxed font-mono">
+                </motion.div>
+              );
+            })()}
+          </div>
+        )}
+      </AnimatePresence>� לוח
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })()}
+          </div>
+        )}
+      </AnimatePresence>xt-gray-800 font-medium leading-relaxed font-mono">
                       {selectedOrder.eta || "ממתין לפקודת עיבוד זמני פקק הובלה..."}
                     </p>
                   </div>
