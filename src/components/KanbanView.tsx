@@ -624,7 +624,12 @@ export function KanbanView({ drivers, setActiveTab }: KanbanViewProps) {
                                   </span>
                                 </div>
                               </div>
-                              <span className={`px                            {/* Driver and eta row */}
+                              <span className={`px-2 py-0.5 rounded text-[8.5px] font-black border uppercase ${getStatusBadgeStyles(o.status)}`}>
+                                {getStatusHebrew(o.status)}
+                              </span>
+                            </div>
+
+                            {/* Driver and eta row */}
                             <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100/75 flex-wrap gap-2">
                               <div className="flex items-center gap-1.5">
                                 <div className="w-5 h-5 rounded-full bg-gray-900 text-white flex items-center justify-center text-[8px] font-black uppercase">
@@ -876,34 +881,8 @@ export function KanbanView({ drivers, setActiveTab }: KanbanViewProps) {
             })()}
           </div>
         )}
-      </AnimatePresence>� לוח
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })()}
-          </div>
-        )}
-      </AnimatePresence>xt-gray-800 font-medium leading-relaxed font-mono">
-                      {selectedOrder.eta || "ממתין לפקודת עיבוד זמני פקק הובלה..."}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="pt-4 mt-auto border-t border-gray-100 flex gap-2.5">
-                <button 
-                  onClick={() => setSelectedOrder(null)}
-                  className="w-full bg-gray-900 hover:bg-black text-white font-black py-3 rounded-xl text-center text-xs transition-colors cursor-pointer"
-                >
-                  סגור ורענן
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
       </AnimatePresence>
+
 
       {/* 3. Add New Order Slide Sheet */}
       <AnimatePresence>
