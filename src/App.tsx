@@ -263,8 +263,8 @@ export default function App() {
                   {/* Minimal App Navigation Header Rail */}
                   <header className="bg-white/90 backdrop-blur-xl px-5 py-4 flex justify-between items-center border-b border-gray-100 shrink-0" id="app-top-header">
                     <div className="text-right">
-                      <h1 className="text-2xl font-black text-gray-900 tracking-tighter leading-tight font-sans">SabanOS</h1>
-                      <p className="text-[10px] uppercase tracking-widest text-[#B5BAC9] font-bold">H. Saban Logistics</p>
+                      <h1 className="text-xl font-black text-gray-950 tracking-tight leading-tight font-sans">SabanOS AI</h1>
+                      <p className="text-[9px] uppercase tracking-widest text-[#B5BAC9] font-black">Conversational Gate</p>
                     </div>
 
                     {/* Header Right utilities features */}
@@ -275,8 +275,8 @@ export default function App() {
                       {/* Reminders Pill indicator popups */}
                       <RemindersOverview />
 
-                      {/* Display user avatar or elegant serif monogram "S" / First initial */}
-                      <div className="w-9 h-9 rounded-full bg-gray-900 hover:bg-black text-white flex items-center justify-center font-serif italic text-base shadow-md cursor-pointer transition-all active:scale-95" title={user.displayName || "משתמש סבן"}>
+                      {/* Display user avatar or monogram */}
+                      <div className="w-9 h-9 rounded-full bg-gray-950 text-white flex items-center justify-center font-serif italic text-sm shadow-md cursor-pointer transition-all active:scale-95" title={user.displayName || "משתמש סבן"}>
                         {user.displayName ? user.displayName.charAt(0) : "S"}
                       </div>
 
@@ -291,131 +291,13 @@ export default function App() {
                     </div>
                   </header>
 
-                  {/* Active view component map routing switcher with scroll-preservation keeping views mounted */}
+                  {/* Active view component map routing switcher - Strictly Chat-First */}
                   <main 
                     ref={mainRef}
-                    onScroll={handleScroll}
-                    className="flex-1 flex flex-col overflow-y-auto pb-32 sm:pb-28 bg-[#FDFDFF] scroll-smooth"
+                    className="flex-1 flex flex-col overflow-hidden bg-[#FDFDFF]"
                   >
-                    <div className={activeTab === "kanban" ? "" : "hidden"} id="tab-holder-kanban">
-                      <KanbanView drivers={drivers} setActiveTab={setActiveTab} />
-                    </div>
-                    <div className={activeTab === "chat" ? "" : "hidden"} id="tab-holder-chat">
-                      <NoaChatView />
-                    </div>
-                    <div className={activeTab === "inventory" ? "" : "hidden"} id="tab-holder-inventory">
-                      <InventoryCustomerView />
-                    </div>
-                    <div className={activeTab === "drivers" ? "" : "hidden"} id="tab-holder-drivers">
-                      <DriversView drivers={drivers} />
-                    </div>
+                    <NoaChatView />
                   </main>
-
-                  {/* STRICT FIXED BOTTOM NAVIGATION BAR: Strict Bottom Navigation Bar for core views (Kanban, Chat, List, Drivers) */}
-                  <nav className="fixed sm:absolute bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-xl border-t border-gray-150/70 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] z-50 flex justify-around items-center" id="strict-bottom-nav">
-                    <button 
-                      onClick={() => {
-                        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-                          try { navigator.vibrate(12); } catch (e) {}
-                        }
-                        setActiveTab("kanban");
-                      }}
-                      className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
-                      id="nav-tab-kanban"
-                      style={{ minWidth: "48px", minHeight: "48px" }}
-                    >
-                      <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-                        activeTab === "kanban" ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20" : "bg-transparent text-gray-400"
-                      }`}>
-                        <Kanban className="w-6.5 h-6.5" />
-                        {pendingJobsCount > 0 && (
-                          <span className="absolute -top-1 -right-1 flex h-5.5 w-5.5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-black text-white ring-2 ring-white shadow-xs">
-                            {pendingJobsCount}
-                          </span>
-                        )}
-                      </div>
-                      <span className={`text-[10px] mt-1.5 transition-colors font-black ${
-                        activeTab === "kanban" ? "text-gray-950 font-black" : "text-gray-400 font-bold"
-                      }`}>לוח</span>
-                    </button>
-
-                    <button 
-                      onClick={() => {
-                        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-                          try { navigator.vibrate(12); } catch (e) {}
-                        }
-                        setActiveTab("chat");
-                      }}
-                      className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
-                      id="nav-tab-chat"
-                      style={{ minWidth: "48px", minHeight: "48px" }}
-                    >
-                      <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-                        activeTab === "chat" ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20" : "bg-transparent text-gray-400"
-                      }`}>
-                        <MessageSquare className="w-6.5 h-6.5" />
-                        <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
-                          <span className="relative inline-flex h-3 w-3 rounded-full bg-indigo-500"></span>
-                        </span>
-                      </div>
-                      <span className={`text-[10px] mt-1.5 transition-colors font-black ${
-                        activeTab === "chat" ? "text-gray-950 font-black" : "text-gray-400 font-bold"
-                      }`}>AI צ'אט</span>
-                    </button>
-
-                    <button 
-                      onClick={() => {
-                        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-                          try { navigator.vibrate(12); } catch (e) {}
-                        }
-                        setActiveTab("inventory");
-                      }}
-                      className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
-                      id="nav-tab-inventory"
-                      style={{ minWidth: "48px", minHeight: "48px" }}
-                    >
-                      <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-                        activeTab === "inventory" ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20" : "bg-transparent text-gray-400"
-                      }`}>
-                        <Box className="w-6.5 h-6.5" />
-                        {lowStockCount > 0 && (
-                          <span className="absolute -top-1 -right-1 flex h-5.5 w-5.5 items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white ring-2 ring-white animate-pulse shadow-xs">
-                             {lowStockCount}
-                          </span>
-                        )}
-                      </div>
-                      <span className={`text-[10px] mt-1.5 transition-colors font-black ${
-                        activeTab === "inventory" ? "text-gray-950 font-black" : "text-gray-400 font-bold"
-                      }`}>מלאי</span>
-                    </button>
-
-                    <button 
-                      onClick={() => {
-                        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-                          try { navigator.vibrate(12); } catch (e) {}
-                        }
-                        setActiveTab("drivers");
-                      }}
-                      className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
-                      id="nav-tab-drivers"
-                      style={{ minWidth: "48px", minHeight: "48px" }}
-                    >
-                      <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-                        activeTab === "drivers" ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20" : "bg-transparent text-gray-400"
-                      }`}>
-                        <Users className="w-6.5 h-6.5" />
-                        {activeDriversCount > 0 && (
-                          <span className="absolute -top-1 -right-1 flex h-5.5 w-5.5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black text-white ring-2 ring-white shadow-xs">
-                            {activeDriversCount}
-                          </span>
-                        )}
-                      </div>
-                      <span className={`text-[10px] mt-1.5 transition-colors font-black ${
-                        activeTab === "drivers" ? "text-gray-950 font-black" : "text-gray-400 font-bold"
-                      }`}>נהגים</span>
-                    </button>
-                  </nav>
 
                   {/* Safe Area Indicator */}
                   <div className="absolute bottom-1.5 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gray-200 rounded-full z-50 pointer-events-none hidden sm:block"></div>

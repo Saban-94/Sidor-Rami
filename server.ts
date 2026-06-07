@@ -33,6 +33,35 @@ function getGeminiClient(): GoogleGenAI {
   return aiClient;
 }
 
+// Robust retry utility for handling temporary upstream 503 errors and high-demand spikes
+async function callWithRetry<T>(fn: () => Promise<T>, maxRetries = 3, initialDelayMs = 1500): Promise<T> {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      attempt++;
+      const errorMessage = error?.message || "";
+      const is503OrUnavailable = 
+        error?.status === 503 || 
+        error?.statusCode === 503 || 
+        errorMessage.includes("503") || 
+        errorMessage.includes("UNAVAILABLE") || 
+        errorMessage.includes("high demand") || 
+        errorMessage.includes("temporary");
+
+      if (is503OrUnavailable && attempt < maxRetries) {
+        const delay = initialDelayMs * Math.pow(2, attempt - 1);
+        console.warn(`[SabanOS AI Client] Gemini API returned 503/UNAVAILABLE (high demand). Retrying attempt ${attempt}/${maxRetries} in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error("Gemini API call failed after max retries due to high demand.");
+}
+
 // Check api health
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
@@ -101,7 +130,7 @@ B. בדיקת היסטוריית רכישות של הלקוח הספציפי (ל
       history: chatHistory
     });
 
-    const response = await chatInstance.sendMessage({ message });
+    const response = await callWithRetry(() => chatInstance.sendMessage({ message }));
     res.json({ text: response.text });
   } catch (error: any) {
     console.error("Noa Chat Error:", error);
@@ -147,7 +176,7 @@ ${logText}
 
 החזר אך ורק קובץ JSON תקין ומדויק.`;
 
-    const response = await ai.models.generateContent({
+    const response = await callWithRetry(() => ai.models.generateContent({
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -194,7 +223,7 @@ ${logText}
           }
         }
       }
-    });
+    }));
 
     const parsedData = JSON.parse(response.text || "{}");
     res.json(parsedData);
@@ -228,7 +257,7 @@ ${JSON.stringify(driverStats, null, 2)}
 - estimatedMinutes: מספר דקות משוער להגעה (מספר שלם).
 - formattedEtaMessage: הודעת סיכום נוחה ללקוח (למשל, "תוך כ-45 דקות מהיציאה").`;
 
-    const response = await ai.models.generateContent({
+    const response = await callWithRetry(() => ai.models.generateContent({
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -243,7 +272,7 @@ ${JSON.stringify(driverStats, null, 2)}
           required: ["predictionReasoning", "estimatedMinutes", "formattedEtaMessage"]
         }
       }
-    });
+    }));
 
     const parsedEta = JSON.parse(response.text || "{}");
     res.json(parsedEta);
