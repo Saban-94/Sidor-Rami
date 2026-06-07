@@ -1,0 +1,143 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable, secure helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\\\-]+$');
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'hsaban2025@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity Schemas
+    function isValidOrder(data) {
+      return data.keys().hasAll(['date', 'customerName', 'orderNumber', 'destination', 'status'])
+        && data.date is string && data.date.size() <= 64
+        && data.customerName is string && data.customerName.size() <= 200
+        && data.orderNumber is string && data.orderNumber.size() <= 128
+        && data.destination is string && data.destination.size() <= 300
+        && data.status is string && (data.status == 'pending' || data.status == 'in_transit' || data.status == 'delivered' || data.status == 'canceled');
+    }
+
+    function isValidMorningReport(data) {
+      return data.keys().hasAll(['date', 'reportText', 'createdAt'])
+        && data.date is string && data.date.size() <= 64
+        && data.reportText is string && data.reportText.size() <= 10000
+        && data.createdAt is string && data.createdAt.size() <= 128;
+    }
+
+    function isValidInventoryItem(data) {
+      return data.keys().hasAll(['sku', 'name', 'currentStock', 'minStock'])
+        && data.sku is string && data.sku.size() <= 128
+        && data.name is string && data.name.size() <= 200
+        && data.currentStock is number 
+        && data.minStock is number;
+    }
+
+    function isValidDriver(data) {
+      return data.keys().hasAll(['name', 'phone', 'vehicleType', 'status'])
+        && data.name is string && data.name.size() <= 200
+        && data.phone is string && data.phone.size() <= 64
+        && data.vehicleType is string && (data.vehicleType == 'truck' || data.vehicleType == 'crane')
+        && data.status is string && (data.status == 'active' || data.status == 'busy' || data.status == 'offline');
+    }
+
+    function isValidCustomer(data) {
+      return data.keys().hasAll(['name', 'customerNumber', 'phoneNumber'])
+        && data.name is string && data.name.size() <= 200
+        && data.customerNumber is string && data.customerNumber.size() <= 128
+        && data.phoneNumber is string && data.phoneNumber.size() <= 64;
+    }
+
+    function isValidReminder(data) {
+      return data.keys().hasAll(['title', 'dueDate', 'isCompleted'])
+        && data.title is string && data.title.size() <= 300
+        && data.dueDate is string && data.dueDate.size() <= 64
+        && data.isCompleted is bool;
+    }
+
+    function isValidTeamChatMessage(data) {
+      return data.keys().hasAll(['senderId', 'senderName', 'text', 'timestamp'])
+        && data.senderId is string && data.senderId.size() <= 128
+        && data.senderName is string && data.senderName.size() <= 200
+        && data.text is string && data.text.size() <= 5000
+        && data.timestamp is string && data.timestamp.size() <= 128;
+    }
+
+    // Collections matches
+    match /orders/{orderId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidOrder(incoming()) && isValidId(orderId);
+      allow update: if isSignedIn() && isValidOrder(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'driverId', 'eta', 'items', 'warehouse', 'documentIds'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /morning_reports/{reportId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidMorningReport(incoming()) && isValidId(reportId);
+      allow update, delete: if isAdmin();
+    }
+
+    match /inventory/{itemId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidInventoryItem(incoming()) && isValidId(itemId);
+      allow delete: if isAdmin();
+    }
+
+    match /drivers/{driverId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidDriver(incoming()) && isValidId(driverId);
+      allow update: if isSignedIn() && isValidDriver(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'phone', 'totalDeliveries', 'onTimeRate', 'rating'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /customers/{customerId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidCustomer(incoming()) && isValidId(customerId);
+      allow delete: if isAdmin();
+    }
+
+    match /reminders/{reminderId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidReminder(incoming()) && isValidId(reminderId);
+      allow update: if isSignedIn() && isValidReminder(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['isCompleted', 'title', 'dueDate', 'dueTime', 'description', 'orderId'])
+      );
+      allow delete: if isSignedIn();
+    }
+
+    match /office_messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidTeamChatMessage(incoming()) && isValidId(messageId);
+      allow update, delete: if isAdmin();
+    }
+  }
+}

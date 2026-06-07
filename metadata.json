@@ -1,0 +1,6 @@
+{
+  "name": "SabanOS",
+  "description": "Progressive Web App (PWA) operational SaaS for H. Saban Logistics, powered by Saban AI and Noa Assistant",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

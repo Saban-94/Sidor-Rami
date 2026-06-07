@@ -1,0 +1,136 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "Logistics delivery order details mapping items and driver statuses",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "description": "Delivery date YYYY-MM-DD" },
+        "time": { "type": "string", "description": "Target delivery time" },
+        "driverId": { "type": "string", "description": "UID or code of driver" },
+        "customerName": { "type": "string", "description": "Customer standard name" },
+        "orderNumber": { "type": "string", "description": "Logistics or invoice ID" },
+        "destination": { "type": "string", "description": "Hebrew Address of destination" },
+        "items": { "type": "string", "description": "Logistics items included in delivery" },
+        "warehouse": { "type": "string", "description": "Dispatch warehouse details" },
+        "documentIds": { "type": "string", "description": "Linked document reference codes" },
+        "status": { "type": "string", "enum": ["pending", "in_transit", "delivered", "canceled"], "description": "Delivery progress state" },
+        "eta": { "type": "string", "description": "Estimated target delivery arrival" }
+      },
+      "required": ["date", "customerName", "orderNumber", "destination", "status"]
+    },
+    "MorningReport": {
+      "title": "MorningReport",
+      "description": "Premium morning logistics summary and briefing text",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "description": "Report YYYY-MM-DD" },
+        "orderIds": { "type": "string", "description": "Comma separated active order IDs" },
+        "reportText": { "type": "string", "description": "Hebrew description narrative" },
+        "createdAt": { "type": "string", "description": "Creation timestamp in ISO or server format" }
+      },
+      "required": ["date", "reportText", "createdAt"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Stock inventory details of building materials/crane items",
+      "type": "object",
+      "properties": {
+        "sku": { "type": "string", "description": "Stock Keeping Unit item code" },
+        "name": { "type": "string", "description": "Material or equipment title" },
+        "description": { "type": "string", "description": "Product summary details" },
+        "unit": { "type": "string", "description": "Standard inventory measuring unit" },
+        "currentStock": { "type": "number", "description": "Current quantity in stock" },
+        "minStock": { "type": "number", "description": "Minimum alert boundary stock" },
+        "price": { "type": "number", "description": "Unit pricing element" },
+        "category": { "type": "string", "description": "Operational item category group" }
+      },
+      "required": ["sku", "name", "currentStock", "minStock"]
+    },
+    "Driver": {
+      "title": "Driver",
+      "description": "Operational driver registry for trucks and crane operations",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "vehicleType": { "type": "string", "enum": ["truck", "crane"] },
+        "plateNumber": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "busy", "offline"] },
+        "totalDeliveries": { "type": "number" },
+        "onTimeRate": { "type": "number" },
+        "rating": { "type": "number" }
+      },
+      "required": ["name", "phone", "vehicleType", "status"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Client registry with digital file storage folders on Drive",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "customerNumber": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "driveFolderId": { "type": "string" }
+      },
+      "required": ["name", "customerNumber", "phoneNumber"]
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "description": "Operational tasks flagged with alert priorities",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Reminder task summary" },
+        "description": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "dueTime": { "type": "string" },
+        "isCompleted": { "type": "boolean" },
+        "orderId": { "type": "string" }
+      },
+      "required": ["title", "dueDate", "isCompleted"]
+    },
+    "TeamChatMessage": {
+      "title": "TeamChatMessage",
+      "description": "Logistics hub internal messaging and dispatch chat items",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "description": "Date or ISO string" }
+      },
+      "required": ["senderId", "senderName", "text", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Delivery tracking orders"
+    },
+    "/morning_reports/{reportId}": {
+      "schema": "MorningReport",
+      "description": "Premium briefing logs"
+    },
+    "/inventory/{itemId}": {
+      "schema": "InventoryItem",
+      "description": "Construction/materials logistics inventory"
+    },
+    "/drivers/{driverId}": {
+      "schema": "Driver",
+      "description": "Registered delivery fleet operators"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Verified logistics dispatch customers"
+    },
+    "/reminders/{reminderId}": {
+      "schema": "Reminder",
+      "description": "Saban OS dispatch/driver reminders"
+    },
+    "/office_messages/{messageId}": {
+      "schema": "TeamChatMessage",
+      "description": "Real-time hub operations chat feed"
+    }
+  }
+}
