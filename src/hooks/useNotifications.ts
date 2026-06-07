@@ -116,9 +116,14 @@ export function useNotifications() {
         // VAPID key configuration
         const vapidKey = (import.meta as any).env?.VITE_FCM_VAPID_KEY || undefined;
         
+        // Direct registrations avoids hangs and mismatch on Vercel
+        const registration = "serviceWorker" in navigator 
+          ? await navigator.serviceWorker.register("/firebase-messaging-sw.js")
+          : undefined;
+
         const currentToken = await getToken(messaging, { 
           vapidKey,
-          serviceWorkerRegistration: await navigator.serviceWorker.ready
+          serviceWorkerRegistration: registration
         });
 
         if (currentToken) {
