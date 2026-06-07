@@ -4,15 +4,16 @@ import { db, handleFirestoreError, OperationType } from "../firebase";
 import { Order, Driver } from "../types";
 
 import { 
-  Package, MapPin, Truck, Calendar, Clock, Play, CheckCircle, XCircle, Plus, Search, Layers, Navigation, ChevronRight, Check, Sparkles, Filter
+  Package, MapPin, Truck, Calendar, Clock, Play, CheckCircle, XCircle, Plus, Search, Layers, Navigation, ChevronRight, Check, Sparkles, Filter, MessageSquare, Users
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface KanbanViewProps {
   drivers: Driver[];
+  setActiveTab?: (tab: "kanban" | "chat" | "inventory" | "drivers") => void;
 }
 
-export function KanbanView({ drivers }: KanbanViewProps) {
+export function KanbanView({ drivers, setActiveTab }: KanbanViewProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -250,18 +251,109 @@ export function KanbanView({ drivers }: KanbanViewProps) {
       ) : (
         <div className="px-5 mt-4 overflow-y-auto flex-1 space-y-4">
           
-          {/* Dashboard Quick Stats Card */}
+          {/* Dashboard Enterprise Gateways & Stats */}
           {activeLane === "all" && (
-            <section className="grid grid-cols-2 gap-3" id="kanban-dashboard-stats-card">
-              <div className="p-4 rounded-2xl bg-gray-50 border border-gray-150/40 flex flex-col gap-0.5 text-right">
-                <span className="text-gray-400 text-[9px] font-black uppercase tracking-wider">כלל המשלוחים</span>
-                <span className="text-xl font-black text-gray-900 font-sans">{orders.length}</span>
+            <div className="space-y-4" id="dashboard-saas-gateways">
+              {/* Stats overview integrated with subtle minimalist layout */}
+              <div className="grid grid-cols-2 gap-3" id="kanban-dashboard-stats-card">
+                <div className="p-4 rounded-[1.25rem] bg-gray-50/75 border border-gray-150/45 flex flex-col gap-0.5 text-right">
+                  <span className="text-gray-400 text-[9px] font-black uppercase tracking-widest">משלוחים בטיפול</span>
+                  <span className="text-xl font-black text-gray-900 font-sans">{orders.length}</span>
+                </div>
+                <div className="p-4 rounded-[1.25rem] bg-gray-900 text-white flex flex-col gap-0.5 shadow-sm text-right">
+                  <span className="text-gray-300/80 text-[9px] font-black uppercase tracking-widest">נהגים פעילים</span>
+                  <span className="text-xl font-black text-amber-400 font-sans">{drivers.length}</span>
+                </div>
               </div>
-              <div className="p-4 rounded-2xl bg-gray-900 text-white flex flex-col gap-0.5 shadow-xs text-right">
-                <span className="text-gray-400/90 text-[9px] font-black uppercase tracking-wider">צוות נהגים שטח</span>
-                <span className="text-xl font-black text-amber-400 font-sans">{drivers.length}</span>
+
+              {/* Dynamic Mobile SaaS Gateway Buttons (כפתורי השער) */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center px-1">
+                  <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest font-sans">שערי שליטה וניווט מהיר</span>
+                  <span className="text-[10px] text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded-md font-bold font-sans">SabanOS 2.1 PWA</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3.5">
+                  {/* Gateway 1: Primary Dark Accent - AI Assistant */}
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setActiveTab && setActiveTab("chat")}
+                    className="bg-gray-955 bg-gray-900 text-white p-5 rounded-3xl shadow-lg shadow-gray-900/15 text-right flex flex-col justify-between h-40 transition-all duration-200 cursor-pointer border border-gray-850 relative overflow-hidden select-none"
+                    id="gateway-noa-ai"
+                  >
+                    <div className="absolute top-0 left-0 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-transparent blur-xl pointer-events-none"></div>
+                    <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center border border-white/5">
+                      <Sparkles className="w-5.5 h-5.5 text-amber-400 animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="text-[13px] font-black tracking-tight flex items-center gap-1.5">
+                        <span>נועה AI צ'אט</span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                      </h3>
+                      <p className="text-[9px] text-gray-300 mt-1 font-medium leading-tight">
+                        מפרט לוגיסטי, חיזוי פקקים, סנכרון Comax.
+                      </p>
+                    </div>
+                  </motion.button>
+
+                  {/* Gateway 2: Light High-Contrast Accent - Create New Job */}
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsAddOpen(true)}
+                    className="bg-white text-gray-900 p-5 rounded-3xl shadow-lg shadow-gray-200/50 text-right flex flex-col justify-between h-40 transition-all duration-200 cursor-pointer border border-gray-150 select-none hover:border-amber-200"
+                    id="gateway-new-order"
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center border border-amber-100">
+                      <Plus className="w-5.5 h-5.5 text-amber-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-[13px] font-black tracking-tight text-gray-950">הזמנה חדשה</h3>
+                      <p className="text-[9px] text-gray-550 mt-1 font-medium leading-tight">
+                        פתיחת כרטיס הובלה, שיבוץ מנופאי וקישורי תעודות.
+                      </p>
+                    </div>
+                  </motion.button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3.5">
+                  {/* Gateway 3: Light Accent - Inventory and Storage */}
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setActiveTab && setActiveTab("inventory")}
+                    className="bg-white text-gray-900 p-5 rounded-3xl shadow-lg shadow-gray-200/50 text-right flex flex-col justify-between h-40 transition-all duration-200 cursor-pointer border border-gray-150 select-none hover:border-gray-300"
+                    id="gateway-inventory"
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                      <Layers className="w-5.5 h-5.5 text-gray-800" />
+                    </div>
+                    <div>
+                      <h3 className="text-[13px] font-black tracking-tight text-gray-905 text-gray-950 font-sans">מלאי וציוד עזר</h3>
+                      <p className="text-[9px] text-gray-500 mt-1 font-medium leading-tight">
+                        מפלסי ציוד קשירה, מחסנים ותיקי לקוח Drive.
+                      </p>
+                    </div>
+                  </motion.button>
+
+                  {/* Gateway 4: Light Accent - Drivers Network */}
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setActiveTab && setActiveTab("drivers")}
+                    className="bg-white text-gray-900 p-5 rounded-3xl shadow-lg shadow-gray-200/50 text-right flex flex-col justify-between h-40 transition-all duration-200 cursor-pointer border border-gray-150 select-none hover:border-gray-300"
+                    id="gateway-drivers"
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                      <Users className="w-5.5 h-5.5 text-gray-800" />
+                    </div>
+                    <div>
+                      <h3 className="text-[13px] font-black tracking-tight text-gray-905 text-gray-950 font-sans">ניהול צי נהגים</h3>
+                      <p className="text-[9px] text-gray-500 mt-1 font-medium leading-tight">
+                        עדכון סטטוס פעיל, קליטת מסמכים ורישוי כלים כבדים.
+                      </p>
+                    </div>
+                  </motion.button>
+                </div>
               </div>
-            </section>
+            </div>
           )}
 
           {/* Kanban Columns viewports */}

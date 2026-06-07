@@ -295,10 +295,10 @@ export default function App() {
                   <main 
                     ref={mainRef}
                     onScroll={handleScroll}
-                    className="flex-1 flex flex-col overflow-y-auto pb-24 bg-[#FDFDFF] scroll-smooth"
+                    className="flex-1 flex flex-col overflow-y-auto pb-32 sm:pb-28 bg-[#FDFDFF] scroll-smooth"
                   >
                     <div className={activeTab === "kanban" ? "" : "hidden"} id="tab-holder-kanban">
-                      <KanbanView drivers={drivers} />
+                      <KanbanView drivers={drivers} setActiveTab={setActiveTab} />
                     </div>
                     <div className={activeTab === "chat" ? "" : "hidden"} id="tab-holder-chat">
                       <NoaChatView />
@@ -311,85 +311,89 @@ export default function App() {
                     </div>
                   </main>
 
-                  {/* STRICT BOTTOM NAVIGATION BAR: Strict Bottom Navigation Bar for core views (Kanban, Chat, List, Drivers) */}
-                  <nav className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100/90 shadow-2xl px-4 py-3 pb-5 z-40 flex justify-around items-center" id="strict-bottom-nav">
+                  {/* STRICT FIXED BOTTOM NAVIGATION BAR: Strict Bottom Navigation Bar for core views (Kanban, Chat, List, Drivers) */}
+                  <nav className="fixed sm:absolute bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-xl border-t border-gray-150/70 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] z-50 flex justify-around items-center" id="strict-bottom-nav">
                     <button 
                       onClick={() => setActiveTab("kanban")}
-                      className={`flex flex-col items-center gap-1 transition-all flex-1 ${
-                        activeTab === "kanban" ? "text-gray-900 font-bold scale-105" : "text-gray-400 hover:text-gray-600 opacity-60"
-                      }`}
+                      className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
                       id="nav-tab-kanban"
+                      style={{ minWidth: "48px", minHeight: "48px" }}
                     >
-                      <div className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
-                        activeTab === "kanban" ? "bg-gray-900 text-white shadow-sm" : "bg-transparent text-gray-400"
+                      <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+                        activeTab === "kanban" ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20" : "bg-transparent text-gray-400"
                       }`}>
-                        <Kanban className="w-3.5 h-3.5" />
+                        <Kanban className="w-6.5 h-6.5" />
                         {pendingJobsCount > 0 && (
-                          <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-black text-white ring-1 ring-white">
+                          <span className="absolute -top-1 -right-1 flex h-5.5 w-5.5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-black text-white ring-2 ring-white shadow-xs">
                             {pendingJobsCount}
                           </span>
                         )}
                       </div>
-                      <span className="text-[9px] font-black">לוח</span>
+                      <span className={`text-[10px] mt-1.5 transition-colors font-black ${
+                        activeTab === "kanban" ? "text-gray-950 font-black" : "text-gray-400 font-bold"
+                      }`}>לוח</span>
                     </button>
 
                     <button 
                       onClick={() => setActiveTab("chat")}
-                      className={`flex flex-col items-center gap-1 transition-all flex-1 ${
-                        activeTab === "chat" ? "text-gray-900 font-bold scale-105" : "text-gray-400 hover:text-gray-600"
-                      }`}
+                      className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
                       id="nav-tab-chat"
+                      style={{ minWidth: "48px", minHeight: "48px" }}
                     >
-                      <div className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
-                        activeTab === "chat" ? "bg-gray-900 text-white shadow-sm" : "bg-transparent text-gray-400"
+                      <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+                        activeTab === "chat" ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20" : "bg-transparent text-gray-400"
                       }`}>
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                        <MessageSquare className="w-6.5 h-6.5" />
+                        <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500"></span>
+                          <span className="relative inline-flex h-3 w-3 rounded-full bg-indigo-505 bg-indigo-500"></span>
                         </span>
                       </div>
-                      <span className="text-[9px] font-black">AI צ'אט</span>
+                      <span className={`text-[10px] mt-1.5 transition-colors font-black ${
+                        activeTab === "chat" ? "text-gray-950 font-black" : "text-gray-400 font-bold"
+                      }`}>AI צ'אט</span>
                     </button>
 
                     <button 
                       onClick={() => setActiveTab("inventory")}
-                      className={`flex flex-col items-center gap-1 transition-all flex-1 ${
-                        activeTab === "inventory" ? "text-gray-900 font-bold scale-105" : "text-gray-400 hover:text-gray-600"
-                      }`}
+                      className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
                       id="nav-tab-inventory"
+                      style={{ minWidth: "48px", minHeight: "48px" }}
                     >
-                      <div className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
-                        activeTab === "inventory" ? "bg-gray-900 text-white shadow-sm" : "bg-transparent text-gray-400"
+                      <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+                        activeTab === "inventory" ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20" : "bg-transparent text-gray-400"
                       }`}>
-                        <Box className="w-3.5 h-3.5" />
+                        <Box className="w-6.5 h-6.5" />
                         {lowStockCount > 0 && (
-                          <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-rose-600 text-[8px] font-black text-white ring-1 ring-white animate-pulse">
+                          <span className="absolute -top-1 -right-1 flex h-5.5 w-5.5 items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white ring-2 ring-white animate-pulse shadow-xs">
                             {lowStockCount}
                           </span>
                         )}
                       </div>
-                      <span className="text-[9px] font-black">מלאי</span>
+                      <span className={`text-[10px] mt-1.5 transition-colors font-black ${
+                        activeTab === "inventory" ? "text-gray-950 font-black" : "text-gray-400 font-bold"
+                      }`}>מלאי</span>
                     </button>
 
                     <button 
                       onClick={() => setActiveTab("drivers")}
-                      className={`flex flex-col items-center gap-1 transition-all flex-1 ${
-                        activeTab === "drivers" ? "text-gray-900 font-bold scale-105" : "text-gray-400 hover:text-gray-600"
-                      }`}
+                      className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
                       id="nav-tab-drivers"
+                      style={{ minWidth: "48px", minHeight: "48px" }}
                     >
-                      <div className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
-                        activeTab === "drivers" ? "bg-gray-900 text-white shadow-sm" : "bg-transparent text-gray-400"
+                      <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+                        activeTab === "drivers" ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20" : "bg-transparent text-gray-400"
                       }`}>
-                        <Users className="w-3.5 h-3.5" />
+                        <Users className="w-6.5 h-6.5" />
                         {activeDriversCount > 0 && (
-                          <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 text-[8px] font-black text-white ring-1 ring-white">
+                          <span className="absolute -top-1 -right-1 flex h-5.5 w-5.5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black text-white ring-2 ring-white shadow-xs">
                             {activeDriversCount}
                           </span>
                         )}
                       </div>
-                      <span className="text-[9px] font-black">נהגים</span>
+                      <span className={`text-[10px] mt-1.5 transition-colors font-black ${
+                        activeTab === "drivers" ? "text-gray-950 font-black" : "text-gray-400 font-bold"
+                      }`}>נהגים</span>
                     </button>
                   </nav>
 
