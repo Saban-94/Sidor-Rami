@@ -13,7 +13,7 @@ import { InventoryCustomerView } from "./components/InventoryCustomerView";
 import { DriversView } from "./components/DriversView";
 import { RemindersOverview } from "./components/RemindersOverview";
 import { NotificationManager } from "./components/NotificationManager";
-import { Driver } from "./types";
+import { Driver, Order, InventoryItem } from "./types";
 import { 
   Briefcase, MessageSquare, Shield, HelpCircle, LogOut, Kanban, Box, Users, HardHat, Bell, Key, Sparkles, AlertTriangle
 } from "lucide-react";
@@ -23,8 +23,10 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
   
-  // Real-time globally synced drivers
+  // Real-time globally synced drivers, orders, and inventory
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
   // Navigation tab key: kanban | chat | inventory | drivers
   const [activeTab, setActiveTab] = useState<"kanban" | "chat" | "inventory" | "drivers">("kanban");
@@ -57,6 +59,32 @@ export default function App() {
     return () => unsub();
   }, [user]);
 
+  // Sync orders for real-time activity and pending status counts
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(collection(db, "orders"), (snap) => {
+      const list: Order[] = [];
+      snap.forEach((d) => {
+        list.push({ ...d.data(), id: d.id } as Order);
+      });
+      setOrders(list);
+    });
+    return () => unsub();
+  }, [user]);
+
+  // Sync inventory levels for low stock alerts
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(collection(db, "inventory"), (snap) => {
+      const list: InventoryItem[] = [];
+      snap.forEach((d) => {
+        list.push({ ...d.data(), id: d.id } as InventoryItem);
+      });
+      setInventory(list);
+    });
+    return () => unsub();
+  }, [user]);
+
   const handleDemoBypass = async () => {
     // Custom sandbox bypass login using fake user state for iframe flexibility
     const mockUser = {
@@ -79,6 +107,19 @@ export default function App() {
       console.error(e);
     }
   };
+
+  // Derived dynamic metrics for color-coded status badges on bottom navigation
+  const pendingJobsCount = orders.filter(
+    (o) => o.status === "pending" || o.status === "in_transit"
+  ).length;
+
+  const lowStockCount = inventory.filter(
+    (item) => item.currentStock < item.minStock
+  ).length;
+
+  const activeDriversCount = drivers.filter(
+    (d) => d.status === "active" || d.status === "busy"
+  ).length;
 
   if (loadingAuth) {
     return (
@@ -237,10 +278,15 @@ export default function App() {
                       }`}
                       id="nav-tab-kanban"
                     >
-                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                      <div className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
                         activeTab === "kanban" ? "bg-gray-900 text-white shadow-sm" : "bg-transparent text-gray-400"
                       }`}>
                         <Kanban className="w-3.5 h-3.5" />
+                        {pendingJobsCount > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-black text-white ring-1 ring-white">
+                            {pendingJobsCount}
+                          </span>
+                        )}
                       </div>
                       <span className="text-[9px] font-black">לוח</span>
                     </button>
@@ -252,10 +298,14 @@ export default function App() {
                       }`}
                       id="nav-tab-chat"
                     >
-                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                      <div className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
                         activeTab === "chat" ? "bg-gray-900 text-white shadow-sm" : "bg-transparent text-gray-400"
                       }`}>
                         <MessageSquare className="w-3.5 h-3.5" />
+                        <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500"></span>
+                        </span>
                       </div>
                       <span className="text-[9px] font-black">AI צ'אט</span>
                     </button>
@@ -267,10 +317,15 @@ export default function App() {
                       }`}
                       id="nav-tab-inventory"
                     >
-                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                      <div className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
                         activeTab === "inventory" ? "bg-gray-900 text-white shadow-sm" : "bg-transparent text-gray-400"
                       }`}>
                         <Box className="w-3.5 h-3.5" />
+                        {lowStockCount > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-rose-600 text-[8px] font-black text-white ring-1 ring-white animate-pulse">
+                            {lowStockCount}
+                          </span>
+                        )}
                       </div>
                       <span className="text-[9px] font-black">מלאי</span>
                     </button>
@@ -282,10 +337,15 @@ export default function App() {
                       }`}
                       id="nav-tab-drivers"
                     >
-                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                      <div className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
                         activeTab === "drivers" ? "bg-gray-900 text-white shadow-sm" : "bg-transparent text-gray-400"
                       }`}>
                         <Users className="w-3.5 h-3.5" />
+                        {activeDriversCount > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 text-[8px] font-black text-white ring-1 ring-white">
+                            {activeDriversCount}
+                          </span>
+                        )}
                       </div>
                       <span className="text-[9px] font-black">נהגים</span>
                     </button>
