@@ -31,6 +31,36 @@ export default function App() {
   // Navigation tab key: kanban | chat | inventory | drivers
   const [activeTab, setActiveTab] = useState<"kanban" | "chat" | "inventory" | "drivers">("kanban");
 
+  // Refs and logic to preserve and restore scroll state on tab change
+  const mainRef = React.useRef<HTMLDivElement>(null);
+  const scrollPositions = React.useRef<Record<string, number>>({
+    kanban: 0,
+    chat: 0,
+    inventory: 0,
+    drivers: 0,
+  });
+
+  const handleScroll = () => {
+    if (!mainRef.current) return;
+    scrollPositions.current[activeTab] = mainRef.current.scrollTop;
+  };
+
+  useEffect(() => {
+    if (!mainRef.current) return;
+    
+    const originalScrollBehavior = mainRef.current.style.scrollBehavior;
+    mainRef.current.style.scrollBehavior = "auto";
+    mainRef.current.scrollTop = scrollPositions.current[activeTab] || 0;
+    
+    const timeoutId = setTimeout(() => {
+      if (mainRef.current) {
+        mainRef.current.style.scrollBehavior = originalScrollBehavior;
+      }
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
+  }, [activeTab]);
+
   // Track initial Firestore seeding status
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (currentUser) => {
@@ -261,12 +291,24 @@ export default function App() {
                     </div>
                   </header>
 
-                  {/* Active view component map routing switcher */}
-                  <main className="flex-1 flex flex-col overflow-y-auto pb-24 bg-[#FDFDFF] scroll-smooth">
-                    {activeTab === "kanban" && <KanbanView drivers={drivers} />}
-                    {activeTab === "chat" && <NoaChatView />}
-                    {activeTab === "inventory" && <InventoryCustomerView />}
-                    {activeTab === "drivers" && <DriversView drivers={drivers} />}
+                  {/* Active view component map routing switcher with scroll-preservation keeping views mounted */}
+                  <main 
+                    ref={mainRef}
+                    onScroll={handleScroll}
+                    className="flex-1 flex flex-col overflow-y-auto pb-24 bg-[#FDFDFF] scroll-smooth"
+                  >
+                    <div className={activeTab === "kanban" ? "" : "hidden"} id="tab-holder-kanban">
+                      <KanbanView drivers={drivers} />
+                    </div>
+                    <div className={activeTab === "chat" ? "" : "hidden"} id="tab-holder-chat">
+                      <NoaChatView />
+                    </div>
+                    <div className={activeTab === "inventory" ? "" : "hidden"} id="tab-holder-inventory">
+                      <InventoryCustomerView />
+                    </div>
+                    <div className={activeTab === "drivers" ? "" : "hidden"} id="tab-holder-drivers">
+                      <DriversView drivers={drivers} />
+                    </div>
                   </main>
 
                   {/* STRICT BOTTOM NAVIGATION BAR: Strict Bottom Navigation Bar for core views (Kanban, Chat, List, Drivers) */}
