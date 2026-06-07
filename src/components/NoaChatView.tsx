@@ -7,7 +7,7 @@ import {
   Search, Plus, Minus, Truck, Wrench, UserCheck, MapPin, AlertCircle, Eye, EyeOff, ChevronDown,
   ChevronUp, Calendar, Phone, Trash2, Edit2, AlertTriangle, ShieldCheck
 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, animate } from "motion/react";
 
 interface Message {
   id: string;
@@ -28,6 +28,7 @@ export function NoaChatView() {
   const [inputMessage, setInputMessage] = useState("");
   const [loadingChat, setLoadingChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Syncing operational states
   const [allOrders, setAllOrders] = useState<Order[]>([]);
@@ -35,10 +36,24 @@ export function NoaChatView() {
   const [allDrivers, setAllDrivers] = useState<Driver[]>([]);
   const [reportHistory, setReportHistory] = useState<MorningReport[]>([]);
 
-  // Smooth scroll to bottom on new messages
+  // Smooth scroll to bottom on new messages using Framer Motion
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    const targetScroll = container.scrollHeight - container.clientHeight;
+    if (targetScroll <= 0) return;
+
+    const animation = animate(container.scrollTop, targetScroll, {
+      duration: 0.6,
+      ease: [0.16, 1, 0.3, 1], // sleek easeOutExpo
+      onUpdate: (latest) => {
+        container.scrollTop = latest;
+      }
+    });
+
+    return () => animation.stop();
+  }, [messages, loadingChat]);
 
   // Real-time Firestore synchronization
   useEffect(() => {
@@ -241,7 +256,8 @@ export function NoaChatView() {
 
       {/* Primary Scrollback Stream for the entire system */}
       <div 
-        className="flex-1 overflow-y-auto px-5 py-5 space-y-5 scroll-smooth bg-gradient-to-b from-[#FAFBFD] to-white" 
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto px-5 py-5 space-y-5 bg-gradient-to-b from-[#FAFBFD] to-white" 
         onClick={handleChatContainerClick}
         id="conversational-feed-stream"
       >
