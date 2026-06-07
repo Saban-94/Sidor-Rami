@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { collection, addDoc, getDocs, doc, setDoc, onSnapshot } from "firebase/firestore";
+import { collection, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../firebase";
-import { Order, MorningReport, Reminder, InventoryItem } from "../types";
+import { Order, MorningReport, InventoryItem } from "../types";
 import { 
-  Sparkles, Send, Sparkle, Upload, Check, Clipboard, Database, AlertCircle, Calendar, FileText, RefreshCw, SendHorizontal, Trash, HelpCircle 
+  Sparkles, SendHorizontal, Upload, Check, Clipboard, Database, FileText, RefreshCw, XCircle, Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -29,7 +29,6 @@ export function NoaChatView() {
   const [parsedOrders, setParsedOrders] = useState<Order[]>([]);
   const [parsedInventory, setParsedInventory] = useState<InventoryItem[]>([]);
   const [showComaxResult, setShowComaxResult] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
 
   // Active orders reference for morning summary
   const [allOrders, setAllOrders] = useState<Order[]>([]);
@@ -130,7 +129,6 @@ export function NoaChatView() {
         if (!order || !order.orderNumber) continue;
         const docId = order.orderNumber.toLowerCase().trim();
         if (!docId) continue;
-        // Give standard pending eta status
         await setDoc(doc(db, "orders", docId), {
           ...order,
           eta: order.eta || "עודכן מקומקס (ממתין למינוף)"
@@ -204,91 +202,89 @@ ${JSON.stringify(activePending, null, 2)}
   };
 
   return (
-    <div className="flex flex-col flex-1 bg-[#FDFDFF] pb-24 text-right" dir="rtl" id="noa-view-container">
-      {/* Visual top bar of Saban AI Hub with premium white layout and dark branding accent */}
-      <div className="bg-white px-5 py-4 border-b border-gray-100 shadow-2xs flex justify-between items-center" id="noa-bar-header">
+    <div className="flex flex-col flex-grow bg-[#FDFDFF] pb-24 text-right" dir="rtl" id="noa-view-container">
+      {/* 1. Welcoming Floating App Bar */}
+      <div className="bg-white/95 backdrop-blur-md px-5 pt-4 pb-3 border-b border-gray-100 shadow-2xs sticky top-0 z-30" id="noa-bar-header">
         <div>
-          <h2 className="text-xl font-black text-gray-900 tracking-tight font-sans">AI סייעת לוגיסטית</h2>
-          <p className="text-[10px] uppercase tracking-widest text-[#B5BAC9] font-bold">נועה - עוזרת חכמה & קומקס</p>
+          <span className="text-[9px] uppercase tracking-widest text-indigo-600 font-extrabold font-sans">Saban AI Core</span>
+          <h2 className="text-xl font-black text-gray-900 tracking-tight mt-0.5">עוזרת לוגיסטית חכמה</h2>
         </div>
       </div>
 
-      <div className="px-5 mt-4 space-y-5 flex-1 overflow-y-auto">
-        {/* Quick action buttons designed as custom bento layout anchors */}
+      <div className="px-5 mt-4 space-y-4 flex-1 overflow-y-auto">
+        
+        {/* Quick Bento Anchors */}
         <div className="grid grid-cols-2 gap-3" id="noa-quick-features">
-          <a href="#comax-logs" className="p-4 bg-gray-50 hover:bg-gray-100/70 border border-gray-100 rounded-3xl text-center font-bold text-xs text-gray-855 transition-all block">
-            <Upload className="w-4.5 h-4.5 mx-auto mb-1 text-gray-950" />
-            סריקת לוג Comax
+          <a href="#comax-logs" className="p-3.5 bg-gray-50 border border-gray-150/40 hover:bg-white hover:shadow-xs rounded-2xl text-center transition-all">
+            <Upload className="w-4 h-4 mx-auto mb-1 text-gray-900" />
+            <span className="text-[10px] font-black block text-gray-800">סריקת לוג Comax</span>
           </a>
-          <a href="#daily-briefing" className="p-4 bg-gray-50 hover:bg-gray-100/70 border border-gray-100 rounded-3xl text-center font-bold text-xs text-gray-855 transition-all block">
-            <FileText className="w-4.5 h-4.5 mx-auto mb-1 text-gray-950" />
-            דוח בוקר לוגיסטי (AI)
+          <a href="#daily-briefing" className="p-3.5 bg-gray-50 border border-gray-150/40 hover:bg-white hover:shadow-xs rounded-2xl text-center transition-all">
+            <FileText className="w-4 h-4 mx-auto mb-1 text-gray-900" />
+            <span className="text-[10px] font-black block text-gray-800">דוח בוקר (AI)</span>
           </a>
         </div>
 
-        {/* AI Assistant Banner inline with system status */}
-        <div className="p-4 rounded-3xl bg-amber-50 border border-amber-100 flex items-center gap-3.5 text-right" id="ai-noa-interactive-status">
-          <div className="w-10 h-10 rounded-2xl bg-gray-900 flex items-center justify-center shadow-lg shrink-0">
-             <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
+        {/* AI Greetings and Agent State Indicator */}
+        <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-100/60 flex items-center gap-3" id="ai-noa-interactive-status">
+          <div className="w-9 h-9 rounded-xl bg-gray-900 flex items-center justify-center shrink-0 shadow-md">
+            <Sparkles className="w-4.5 h-4.5 text-amber-400 animate-pulse" />
           </div>
-          <div className="flex-1">
-            <p className="text-[9px] font-black text-amber-800 uppercase tracking-widest">סייעת חכמה - נועה</p>
-            <p className="text-xs text-gray-800 font-bold leading-tight">"זיהיתי עדכוני מלאי מעולים קומקס. לערוך דוח?"</p>
+          <div>
+            <span className="text-[8.5px] font-black text-amber-800 uppercase tracking-widest block font-sans">נועה - מודל זמין</span>
+            <p className="text-[11px] text-gray-800 font-bold leading-tight mt-0.5">סנכרון פעיל מול Comax ERP ומחסן הכלים</p>
           </div>
         </div>
 
-        {/* 1. Conversational Chat screen wrapper */}
-        <div className="bg-white border border-gray-100 rounded-[2rem] p-5 shadow-sm flex flex-col h-[400px]" id="chat-subcontainer">
-          <div className="text-xs font-extrabold text-gray-900 border-b border-gray-100 pb-2 mb-3.5 flex items-center gap-1.5 justify-between">
+        {/* 2. Full-feature Conversational Screen */}
+        <div className="bg-white border border-gray-150 rounded-[2rem] p-4.5 shadow-2xs flex flex-col h-[380px] overflow-hidden" id="chat-subcontainer">
+          <div className="text-[10.5px] font-black text-gray-900 border-b border-gray-100 pb-2.5 mb-3 flex items-center justify-between">
             <span className="flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              צ'אט שוטף מול נועה
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+              צ'אט שוטף מול נועה AI
             </span>
-            <span className="text-[9px] bg-emerald-50 text-emerald-800 border-emerald-100 border px-2 py-0.5 rounded-full font-black">סנכרון פעיל</span>
+            <span className="text-[8px] bg-emerald-50 text-emerald-800 border-emerald-100 border px-1.5 py-0.2 rounded font-black font-mono">ESTABLISHED</span>
           </div>
 
           {/* Interactive Chat Stream list */}
-          <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 pl-1 scrollbar-styled mb-3.5">
+          <div className="flex-grow overflow-y-auto space-y-3 pr-1 pl-1 mb-3 scrollbar-none">
             {messages.map((m, idx) => (
               <div key={idx} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
-                <div className={`p-4 rounded-[1.6rem] text-xs leading-relaxed max-w-[85%] shadow-xs ${
+                <div className={`p-3.5 rounded-2xl text-[11px] leading-relaxed max-w-[88%] shadow-2xs ${
                   m.role === "user" 
                     ? "bg-gray-900 text-white rounded-br-none" 
-                    : "bg-gray-50 text-gray-850 rounded-bl-none border border-gray-150"
+                    : "bg-gray-50 text-gray-800 rounded-bl-none border border-gray-150/70"
                 }`}>
-                  <div className="font-black mb-1 text-[9px] opacity-75">
-                    {m.role === "user" ? "אתה" : "נועה"}
-                  </div>
                   <p className="whitespace-pre-line font-medium">{m.content}</p>
                 </div>
               </div>
             ))}
             {loadingChat && (
-              <div className="flex justify-end pr-1">
-                <div className="bg-gray-50 border border-gray-150 p-2.5 rounded-2xl rounded-bl-none flex items-center gap-2">
-                  <div className="animate-bounce w-1.5 h-1.5 bg-gray-950 rounded-full"></div>
-                  <div className="animate-bounce delay-100 w-1.5 h-1.5 bg-gray-950 rounded-full"></div>
-                  <div className="animate-bounce delay-200 w-1.5 h-1.5 bg-gray-950 rounded-full"></div>
+              <div className="flex justify-end">
+                <div className="bg-gray-50 border border-gray-150/70 p-2.5 rounded-2xl rounded-bl-none flex items-center gap-1.5">
+                  <div className="animate-bounce w-1.5 h-1.5 bg-gray-800 rounded-full"></div>
+                  <div className="animate-bounce delay-100 w-1.5 h-1.5 bg-gray-800 rounded-full"></div>
+                  <div className="animate-bounce delay-200 w-1.5 h-1.5 bg-gray-805 rounded-full"></div>
                 </div>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Chat input box */}
+          {/* Input control and submit bar */}
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <input 
               type="text"
-              placeholder="שאלי אותי משהו, למשל: 'איזה נהגים פנויים עכשיו?'..."
+              placeholder="שאלי אותי משהו, כגון: 'מתי סמי מגיע ליעד?'..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 placeholder-gray-400 outline-none focus:border-gray-950 text-right font-medium"
+              className="flex-grow bg-gray-50 border border-gray-150 rounded-xl px-3 py-2 text-xs text-gray-900 placeholder-gray-400 outline-none focus:bg-white focus:border-gray-900 text-right font-medium h-10"
               id="chat-input-noa"
             />
             <button 
               type="submit"
               disabled={loadingChat || !inputMessage.trim()}
-              className="bg-gray-900 text-white p-2.5 rounded-xl hover:bg-black transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50"
+              className="bg-gray-900 hover:bg-black text-white p-2.5 rounded-xl transition-all flex items-center justify-center shrink-0 disabled:opacity-50 cursor-pointer w-10 h-10"
               id="submit-chat-noa"
             >
               <SendHorizontal className="w-4 h-4 transform rotate-180 text-white" />
@@ -296,155 +292,146 @@ ${JSON.stringify(activePending, null, 2)}
           </form>
         </div>
 
-        {/* 2. COMAX LOG SCANNER INTERACTIVE PANEL */}
-        <div id="comax-logs" className="bg-white border border-gray-150 rounded-[2rem] p-5 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xs font-black text-gray-900 flex items-center gap-2">
+        {/* 3. COMAX RAW LOG INTERPRETER */}
+        <div id="comax-logs" className="bg-white border border-gray-150 rounded-[2rem] p-5 shadow-2xs space-y-3.5">
+          <div className="flex justify-between items-center text-xs">
+            <h4 className="font-extrabold text-[#111827] flex items-center gap-1.5">
               <Upload className="w-4.5 h-4.5 text-gray-950" />
-              קליטת אקסל / לוג Comax מהשטח
-            </h2>
-            <span className="text-[9px] bg-gray-100 text-gray-800 font-extrabold border-gray-200 border px-2.5 py-0.5 rounded-full uppercase tracking-tight">סורק בינה מלאכותית</span>
+              קלט ממסופים / Comax שטח
+            </h4>
+            <span className="text-[8px] bg-indigo-50 text-indigo-700 font-black border-indigo-150 border px-1.5 py-0.2 rounded font-mono">ERP GATEWAY</span>
           </div>
-          <p className="text-xs text-[#9CA3AF] font-medium leading-relaxed">
-            הדבק נתונים גולמיים ממערכת Comax לניהול הזמנות או מלאי, ונועה תפרק אותם ותציע למזג אותם באופן אוטומטי לבסיס הנתונים של SabanOS.
+          <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+            הדבקת שורות טקסט של מעקבי תעודות משלוח, מכלים או החצר, לבקשת קריאה ועדכון מהיר ללוגיסטיקה:
           </p>
 
           <textarea 
-            rows={5}
-            placeholder="לדוגמה:
-הזמנה ORD-9912. לקוח: אשטרום הנדסה. יעד: הרצליה פיתוח. פריט: מנוף כננת עגינה. תאריך: 2026-06-06.
-מק''ט מלאי מזהה: SKU-CR-CHAIN-10. תכולה מעודכנת: 25 יח'. מינימום: 10."
+            rows={4}
+            placeholder="הזנה חופשית כאן של שמות, מספרים, מקוטים..."
             value={comaxInput}
             onChange={(e) => setComaxInput(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs text-gray-850 placeholder-gray-400 outline-none focus:border-gray-950 text-right font-mono"
+            className="w-full bg-gray-50 border border-gray-150 rounded-xl p-3 text-xs text-gray-850 placeholder-gray-400 outline-none focus:bg-white focus:border-gray-900 text-right font-mono"
             id="comax-input-textarea"
           />
 
-          <div className="flex gap-2">
-            <button 
-              onClick={handleComaxScan}
-              disabled={loadingComax || !comaxInput.trim()}
-              className="flex-1 bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-xl text-center text-xs flex items-center justify-center gap-1.5 transition-colors"
-            >
-              {loadingComax ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  נועה מעבדת את הקומקס...
-                </>
-              ) : (
-                <>
-                  <Database className="w-3.5 h-3.5 text-amber-450" />
-                  סרוק וחלץ נתונים
-                </>
-              )}
-            </button>
-          </div>
+          <button 
+            onClick={handleComaxScan}
+            disabled={loadingComax || !comaxInput.trim()}
+            className="w-full bg-gray-900 hover:bg-black text-white font-black py-2.5 rounded-xl text-center text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            {loadingComax ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                מעבדת תכני קומקס במערכת...
+              </>
+            ) : (
+              <>
+                <Database className="w-3.5 h-3.5 text-amber-400" />
+                סרוק וחלץ בעזרת AI נועה
+              </>
+            )}
+          </button>
 
-          {/* Results overlay display drawer */}
+          {/* Parsed overlay displaying beautiful results */}
           {showComaxResult && (
             <motion.div 
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gray-50 border border-gray-200 rounded-2xl p-4 space-y-4"
+              className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-3 mt-2"
               id="comax-results-display"
             >
-              <h3 className="text-xs font-bold text-gray-800 border-b border-gray-250 pb-2 flex justify-between items-center">
-                <span>תרגום בינה מלאכותית מאובחן:</span>
-                <span className="text-emerald-750 font-bold flex items-center gap-1">
+              <h4 className="text-[11px] font-black text-gray-900 border-b border-gray-200 pb-1.5 flex justify-between items-center">
+                <span>תרגום שחולץ מקומקס:</span>
+                <span className="text-emerald-700 font-bold flex items-center gap-0.5">
                   <Check className="w-3.5 h-3.5" />
-                  מוכן למיזוג שטח
+                  מוכן לעדכון ענן
                 </span>
-              </h3>
+              </h4>
 
               {parsedOrders.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-gray-700">🚚 הזמנות שזוהו ({parsedOrders.length}):</h4>
-                  <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
-                    {parsedOrders.map((o, i) => (
-                      <div key={i} className="bg-white p-2 border border-gray-150 rounded-xl text-[11px] font-mono leading-relaxed space-y-0.5">
-                        <div className="flex justify-between font-bold text-amber-700">
-                          <span>{o.orderNumber}</span>
-                          <span>{o.customerName}</span>
-                        </div>
-                        <div className="text-gray-550">יעד: {o.destination}</div>
-                        {o.items && <div className="text-gray-550 truncate">פריט: {o.items}</div>}
+                <div className="space-y-1.5">
+                  <span className="text-[9.5px] font-black text-indigo-700 uppercase tracking-wider block">משלוחי קצה דחופים ({parsedOrders.length}):</span>
+                  {parsedOrders.map((o, i) => (
+                    <div key={i} className="bg-white p-2.5 border border-gray-150/80 rounded-lg text-[10.5px] font-mono leading-relaxed">
+                      <div className="flex justify-between font-extrabold text-[#111827]">
+                        <span>#{o.orderNumber}</span>
+                        <span>{o.customerName}</span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="text-gray-550 mt-0.5">יעד: {o.destination}</div>
+                    </div>
+                  ))}
                 </div>
               )}
 
               {parsedInventory.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-gray-700">📦 פריטי מלאי שזוהו ({parsedInventory.length}):</h4>
-                  <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
-                    {parsedInventory.map((item, i) => (
-                      <div key={i} className="bg-white p-2 border border-gray-150 rounded-xl text-[11px] font-mono leading-relaxed space-y-0.5">
-                        <div className="flex justify-between font-bold text-sky-700">
-                          <span>{item.sku}</span>
-                          <span>{item.name}</span>
-                        </div>
-                        <div className="text-gray-550">מלאי חדש: {item.currentStock} {item.unit || "יח'"}</div>
+                <div className="space-y-1.5">
+                  <span className="text-[9.5px] font-black text-indigo-700 uppercase tracking-wider block">עדכון מלאי מזהה ({parsedInventory.length}):</span>
+                  {parsedInventory.map((item, i) => (
+                    <div key={i} className="bg-white p-2.5 border border-gray-150/80 rounded-lg text-[10.5px] font-mono leading-relaxed">
+                      <div className="flex justify-between font-extrabold text-[#111827]">
+                        <span>{item.sku}</span>
+                        <span>{item.name}</span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="text-gray-550 mt-0.5">מלאי חדש: {item.currentStock} {item.unit}</div>
+                    </div>
+                  ))}
                 </div>
               )}
 
-              <div className="flex gap-2 pt-2 border-t border-gray-200">
+              <div className="flex gap-2.5 pt-2 border-t border-gray-205">
                 <button 
                   onClick={() => setShowComaxResult(false)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-1.5 rounded-lg text-center text-xs"
+                  className="flex-1 bg-white hover:bg-gray-100 text-gray-600 border border-gray-200 py-1.5 rounded-lg text-[10px] cursor-pointer"
                 >
-                  נקה תוצאות
+                  בטל
                 </button>
                 <button 
                   onClick={mergeComaxData}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-lg text-center text-xs flex items-center justify-center gap-1"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-1.5 rounded-lg text-[10px] flex items-center justify-center gap-1 cursor-pointer"
                 >
-                  <Database className="w-3.5 h-3.5" />
-                  מזג למערכת SabanOS
+                  <Check className="w-3.5 h-3.5 text-white" />
+                  עדכן מערכת SabanOS
                 </button>
               </div>
             </motion.div>
           )}
         </div>
 
-        {/* 3. MORNING LOGISTICS OFFICE REPORT WRAPPER */}
-        <div id="daily-briefing" className="bg-white border border-gray-200 rounded-3xl p-5 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="w-4.5 h-4.5 text-sky-500" />
-              דוח בוקר ויומן סדרן יומי
-            </h2>
-            <span className="text-[10px] bg-sky-50 text-sky-800 font-semibold border-sky-100 border px-2 py-0.5 rounded-full">ארכיון סיכומים</span>
+        {/* 4. DAILY MORNING REPORT MODULE */}
+        <div id="daily-briefing" className="bg-white border border-gray-150 rounded-[2rem] p-5 shadow-2xs space-y-3.5">
+          <div className="flex justify-between items-center text-xs">
+            <h4 className="font-extrabold text-[#111827] flex items-center gap-1.5">
+              <FileText className="w-4.5 h-4.5 text-indigo-500" />
+              דוח לוגיסטי מסכם (סדרן)
+            </h4>
+            <span className="text-[8px] bg-amber-50 text-amber-800 border-amber-100 border px-1.5 py-0.2 rounded font-black font-sans">REPORTS ARCHIVE</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-gray-600 block mb-1">תאריך סקירה</label>
+              <label className="text-[9px] font-black text-gray-400 block mb-1 uppercase">תאריך סקירה</label>
               <input 
                 type="date"
                 value={reportDate}
                 onChange={(e) => setReportDate(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs text-gray-800"
+                className="w-full bg-gray-50 border border-gray-150 rounded-xl px-2.5 py-1.5 text-xs text-gray-800"
               />
             </div>
             <div className="flex items-end">
               <button 
                 onClick={generateMorningReportAI}
                 disabled={compilingReport}
-                className="w-full bg-gray-900 text-white font-bold py-2 rounded-xl text-center text-xs flex items-center justify-center gap-1 hover:bg-black transition-all"
+                className="w-full bg-gray-900 border border-transparent hover:bg-black text-white font-extrabold py-1.5 rounded-xl text-center text-xs flex items-center justify-center gap-1 cursor-pointer h-9 shadow-2xs"
               >
                 {compilingReport ? (
                   <>
-                    <RefreshCw className="w-3 animate-spin" />
-                    יוצר סיכום...
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    מחולל...
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    חולל דוח אוטומטי
+                    חולל דוח AI
                   </>
                 )}
               </button>
@@ -457,43 +444,43 @@ ${JSON.stringify(activePending, null, 2)}
               animate={{ height: "auto", opacity: 1 }}
               className="space-y-3"
             >
-              <span className="text-xs font-semibold text-gray-600 block mb-1">טיוטת דוח הבוקר המוצעת:</span>
+              <span className="text-[9.5px] font-black text-gray-400 block uppercase">טיוטת הדוח המופקת:</span>
               <textarea 
-                rows={6}
+                rows={5}
                 value={reportText}
                 onChange={(e) => setReportText(e.target.value)}
-                className="w-full bg-amber-50/40 border border-amber-200/95 rounded-xl p-3 text-xs leading-relaxed text-gray-800 outline-none text-right font-mono"
+                className="w-full bg-amber-50/30 border border-amber-200/50 rounded-xl p-3 text-xs leading-relaxed text-gray-800 outline-none font-mono text-right"
               />
-              <div className="flex gap-2">
+              <div className="flex gap-2.5">
                 <button 
                   onClick={() => setReportText("")}
-                  className="flex-1 bg-gray-200 text-gray-700 py-1.5 rounded-lg text-center text-xs"
+                  className="flex-1 bg-white hover:bg-gray-100 text-gray-600 border border-gray-200 py-1.5 rounded-lg text-xs cursor-pointer"
                 >
-                  נקה דוח
+                  מחק טיוטה
                 </button>
                 <button 
                   onClick={handleSaveMorningReport}
-                  className="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-bold py-1.5 rounded-lg text-center text-xs flex items-center justify-center gap-1"
+                  className="flex-1 bg-gray-900 text-white font-black py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 cursor-pointer hover:bg-black"
                 >
-                  <Check className="w-3.5 h-3.5" />
-                  שמור דוח בארכיון
+                  <Check className="w-3.5 h-3.5 text-amber-400" />
+                  שמור יומן סדרן
                 </button>
               </div>
             </motion.div>
           )}
 
-          {/* Historical archive reports preview list */}
+          {/* History */}
           {reportHistory.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-gray-150">
-              <span className="text-xs font-bold text-gray-650 block">דו\"חות בוקר שמורים מוקדמים:</span>
-              <div className="space-y-2 max-h-[140px] overflow-y-auto">
+            <div className="space-y-2 pt-3 border-t border-gray-100">
+              <span className="text-[9.5px] font-black text-[#B5BAC9] block uppercase tracking-wider">דוחות אחרונים שנלוגו ({reportHistory.length}):</span>
+              <div className="space-y-2 max-h-[150px] overflow-y-auto pr-1">
                 {reportHistory.map((rep) => (
-                  <div key={rep.id} className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs space-y-2 text-right">
-                    <div className="font-bold text-gray-800 pb-1 border-b border-gray-200/50 flex justify-between">
-                      <span>דוח לתאריך: {rep.date}</span>
-                      <span className="text-[10px] text-gray-400">נשמר בבטחה</span>
+                  <div key={rep.id} className="bg-gray-50 border border-gray-200 rounded-2xl p-3 text-[10.5px] space-y-1.5 relative overflow-hidden">
+                    <div className="font-extrabold text-gray-[#111827] pb-1 border-b border-gray-250/30 flex justify-between">
+                      <span>תאריך סקירה: {rep.date}</span>
+                      <span className="text-[8px] bg-emerald-50 text-emerald-800 border border-emerald-100/70 px-1 py-0.2 rounded">נשמר בענן</span>
                     </div>
-                    <p className="text-gray-700 leading-relaxed max-w-[100%] overflow-hidden overflow-ellipsis break-words">
+                    <p className="text-gray-700 leading-normal whitespace-pre-line font-mono">
                       {rep.reportText}
                     </p>
                   </div>

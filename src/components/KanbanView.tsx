@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { collection, updateDoc, doc, addDoc, onSnapshot, getDocs, setDoc, query, orderBy } from "firebase/firestore";
+import { collection, updateDoc, doc, onSnapshot, setDoc } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../firebase";
 import { Order, Driver } from "../types";
 
 import { 
-  Package, MapPin, Truck, Calendar, Clock, Play, CheckCircle, XCircle, ChevronLeft, ChevronRight, Fuel, AlertCircle, Plus, Search, Layers, FileText, User, Navigation 
+  Package, MapPin, Truck, Calendar, Clock, Play, CheckCircle, XCircle, Plus, Search, Layers, Navigation, ChevronRight, Check, Sparkles, Filter
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -19,6 +19,9 @@ export function KanbanView({ drivers }: KanbanViewProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
+  // Mobile ergonomics: Active lane selection filter for optimized mobile viewport view
+  const [activeLane, setActiveLane] = useState<Order["status"] | "all">("all");
+
   // Create Order Form State
   const [formData, setFormData] = useState({
     customerName: "",
@@ -154,150 +157,199 @@ export function KanbanView({ drivers }: KanbanViewProps) {
   const getStatusHebrew = (status: Order["status"]) => {
     switch (status) {
       case "pending": return "ממתין";
-      case "in_transit": return "בדרך לשטח";
+      case "in_transit": return "בדרך";
       case "delivered": return "נמסר";
       case "canceled": return "בוטל";
     }
   };
 
-  const getStatusColor = (status: Order["status"]) => {
+  const getStatusBadgeStyles = (status: Order["status"]) => {
     switch (status) {
-      case "pending": return "bg-amber-100 text-amber-800 border-amber-200";
-      case "in_transit": return "bg-sky-100 text-sky-800 border-sky-200";
-      case "delivered": return "bg-emerald-100 text-emerald-800 border-emerald-200";
-      case "canceled": return "bg-rose-100 text-rose-800 border-rose-200";
+      case "pending": return "bg-amber-50 text-amber-800 border-amber-200/65";
+      case "in_transit": return "bg-indigo-50 text-indigo-800 border-indigo-200/65";
+      case "delivered": return "bg-emerald-50 text-emerald-800 border-emerald-250";
+      case "canceled": return "bg-rose-50 text-rose-800 border-rose-200";
     }
   };
 
   const columns: Order["status"][] = ["pending", "in_transit", "delivered"];
 
   return (
-    <div className="flex flex-col flex-1 bg-[#FDFDFF] pb-24 text-right" dir="rtl" id="kanban-view-container">
-      {/* Header operations with premium clean minimalistic white background and solid buttons */}
-      <div className="bg-white px-5 py-4 border-b border-gray-100 shadow-2xs" id="kanban-header">
-        <div className="flex justify-between items-center mb-4">
+    <div className="flex flex-col flex-grow bg-[#FDFDFF] pb-24 text-right" dir="rtl" id="kanban-view-container">
+      {/* 1. Header Area: Clean breathable light container with primary dark actions */}
+      <div className="bg-white/95 backdrop-blur-md px-5 pt-4 pb-3 border-b border-gray-100/90 shadow-2xs sticky top-0 z-30 flex flex-col gap-3.5" id="kanban-header">
+        <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-black text-gray-900 tracking-tight">מעקב משלוחים</h2>
-            <p className="text-[10px] uppercase tracking-widest text-[#B5BAC9] font-bold">ניהול צד שרשרת אספקה</p>
+            <span className="text-[9px] uppercase tracking-widest text-gray-400 font-bold font-sans">לוח מעקב חכם</span>
+            <h2 className="text-xl font-black text-gray-900 tracking-tight mt-0.5">משלוחי שטח</h2>
           </div>
           <motion.button 
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsAddOpen(true)}
-            className="bg-gray-900 hover:bg-black text-white font-bold py-2.5 px-4 rounded-xl shadow-md flex items-center gap-1.5 text-xs transition-colors"
+            className="bg-gray-900 hover:bg-black text-white font-extrabold py-2 px-3.5 rounded-xl shadow-xs flex items-center gap-1 text-[11px] transition-colors h-10 select-none cursor-pointer"
             id="btn-new-order"
           >
-            <Plus className="w-4 h-4 text-white" />
+            <Plus className="w-3.5 h-3.5 text-white" />
             <span>הזמנה חדשה</span>
           </motion.button>
         </div>
 
-        {/* Real-time search query search bar */}
+        {/* 2. Unified Search Input */}
         <div className="relative">
           <input 
             type="text"
-            placeholder="חיפוש קטלוג לקוח, מס' הזמנה, או כתובת..."
+            placeholder="חפש לקוח, מס' הזמנה או יעד..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-2.5 pr-10 pl-4 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-950 transition-all text-right placeholder-gray-400"
+            className="w-full bg-gray-50 border border-gray-150 rounded-xl py-2.5 pr-9 pl-4 text-xs text-gray-900 focus:outline-none focus:ring-1.5 focus:ring-gray-900 focus:bg-white transition-all text-right placeholder-gray-400 font-medium"
             id="kanban-search-input"
           />
-          <Search className="absolute right-3.5 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" />
+          <Search className="absolute right-3.5 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+        </div>
+
+        {/* 3. Mobile Navigation Slider Segment: isolate different lanes or view all */}
+        <div className="flex bg-gray-50 border border-gray-100/80 p-1 rounded-xl gap-0.5" id="kanban-mobile-lane-selector">
+          <button
+            onClick={() => setActiveLane("all")}
+            className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center justify-center gap-1 ${
+              activeLane === "all" ? "bg-gray-900 text-white shadow-xs" : "text-gray-400 hover:text-gray-900"
+            }`}
+          >
+            הכל ({filteredOrders.length})
+          </button>
+          {columns.map((st) => {
+            const count = filteredOrders.filter(o => o.status === st).length;
+            const activeColor = st === "pending" ? "text-amber-500" : st === "in_transit" ? "text-indigo-500" : "text-emerald-500";
+            return (
+              <button
+                key={st}
+                onClick={() => setActiveLane(st)}
+                className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center justify-center gap-1 ${
+                  activeLane === st ? "bg-gray-900 text-white shadow-xs" : "text-gray-400 hover:text-gray-900"
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  st === "pending" ? "bg-amber-400" : st === "in_transit" ? "bg-indigo-400" : "bg-emerald-500"
+                }`} />
+                <span>{getStatusHebrew(st)}</span>
+                <span className="opacity-75 font-mono">({count})</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-500" id="kanban-loader">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
-          <p className="text-xs font-semibold">טוען הזמנות שרשרת אספקה...</p>
+        <div className="flex flex-col items-center justify-center py-24 text-gray-500" id="kanban-loader">
+          <div className="relative w-8 h-8">
+            <div className="absolute inset-0 rounded-full border-2 border-gray-200"></div>
+            <div className="absolute inset-0 rounded-full border-2 border-gray-900 border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-[11px] font-black text-gray-400 mt-4 uppercase tracking-wider">טוען משלוחים שוטפים...</p>
         </div>
       ) : (
-        <div className="px-5 mt-4 overflow-y-auto flex-1 space-y-5">
-          {/* Dashboard Stats exactly as shown in Artistic Flair theme mockup */}
-          <section className="grid grid-cols-2 gap-3" id="kanban-dashboard-stats-card">
-            <div className="p-4 rounded-3xl bg-gray-50/80 border border-gray-100 flex flex-col gap-1 text-right">
-              <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">כלל ההזמנות</span>
-              <span className="text-2xl font-black text-gray-900">{orders.length}</span>
-            </div>
-            <div className="p-4 rounded-3xl bg-gray-900 text-white flex flex-col gap-1 shadow-lg text-right">
-              <span className="text-gray-400/90 text-[10px] font-bold uppercase tracking-wide">נהגים רשומים</span>
-              <span className="text-2xl font-black text-amber-400">{drivers.length}</span>
-            </div>
-          </section>
+        <div className="px-5 mt-4 overflow-y-auto flex-1 space-y-4">
+          
+          {/* Dashboard Quick Stats Card */}
+          {activeLane === "all" && (
+            <section className="grid grid-cols-2 gap-3" id="kanban-dashboard-stats-card">
+              <div className="p-4 rounded-2xl bg-gray-50 border border-gray-150/40 flex flex-col gap-0.5 text-right">
+                <span className="text-gray-400 text-[9px] font-black uppercase tracking-wider">כלל המשלוחים</span>
+                <span className="text-xl font-black text-gray-900 font-sans">{orders.length}</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-gray-900 text-white flex flex-col gap-0.5 shadow-xs text-right">
+                <span className="text-gray-400/90 text-[9px] font-black uppercase tracking-wider">צוות נהגים שטח</span>
+                <span className="text-xl font-black text-amber-400 font-sans">{drivers.length}</span>
+              </div>
+            </section>
+          )}
 
-          {/* Kanban Lanes */}
-          <div className="flex flex-col gap-5" id="kanban-lanes">
+          {/* Kanban Columns viewports */}
+          <div className="flex flex-col gap-4" id="kanban-lanes">
             {columns.map((st) => {
+              // Hide the column if mobile filters aren't matching
+              if (activeLane !== "all" && activeLane !== st) return null;
+
               const colOrders = filteredOrders.filter(o => o.status === st);
+              const laneColor = st === "pending" ? "bg-amber-400" : st === "in_transit" ? "bg-indigo-500" : "bg-emerald-500";
+
               return (
-                <div key={st} className="bg-gray-50/50 p-4.5 rounded-[2rem] border border-gray-100/80" id={`kanban-lane-${st}`}>
-                  {/* Lane Title & Count badge */}
-                  <div className="flex justify-between items-center mb-3.5 px-1">
-                    <span className="font-extrabold text-gray-900 text-xs flex items-center gap-1.5 uppercase tracking-wide">
-                      <span className={`w-2 h-2 rounded-full ${
-                        st === 'pending' ? 'bg-amber-450' : st === 'in_transit' ? 'bg-sky-500' : 'bg-emerald-500'
-                      }`}></span>
-                      {getStatusHebrew(st)}
+                <div key={st} className="bg-gray-50/50 p-4 rounded-[2rem] border border-gray-150/50" id={`kanban-lane-${st}`}>
+                  {/* Title Bar */}
+                  <div className="flex justify-between items-center mb-3 px-1">
+                    <span className="font-black text-gray-950 text-[11px] flex items-center gap-1.5 uppercase tracking-wide">
+                      <span className={`w-2 h-2 rounded-full ${laneColor}`}></span>
+                      {getStatusHebrew(st) === "ממתין" ? "ממתינים לשיבוץ" : getStatusHebrew(st) === "בדרך" ? "בדרך ולוגיסטיקה" : "נמסרו בהצלחה"}
                     </span>
-                    <span className="text-[10px] bg-gray-200/60 text-gray-800 font-extrabold px-2.5 py-0.5 rounded-full">
+                    <span className="text-[9px] bg-gray-200/50 text-gray-700 font-black px-2 py-0.5 rounded-lg font-mono">
                       {colOrders.length}
                     </span>
                   </div>
 
                   {colOrders.length === 0 ? (
-                    <div className="border border-dashed border-gray-200 rounded-2xl p-6 text-center text-gray-400 text-xs font-semibold">
-                      אין פעילות בסטטוס זה
+                    <div className="bg-white/40 border border-dashed border-gray-200/90 rounded-2xl p-6 text-center text-gray-400 text-[11px] font-bold">
+                      אין פעילות קיימת בשלב זה
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2.5">
                       {colOrders.map((o) => {
                         const driver = drivers.find(d => d.id === o.driverId);
-                        const statusColors = 
-                          st === 'pending' ? 'bg-amber-400' : st === 'in_transit' ? 'bg-sky-400' : 'bg-emerald-500';
+                        
                         return (
                           <motion.div 
                             key={o.id}
                             layoutId={o.id}
+                            whileTap={{ scale: 0.98 }}
                             onClick={() => setSelectedOrder(o)}
-                            className="bg-white/80 backdrop-blur-xl p-4 rounded-[1.8rem] border border-gray-150/80 shadow-xs hover:border-gray-300 hover:shadow-xs cursor-pointer transition-all relative overflow-hidden flex flex-col gap-2 text-right"
+                            className="bg-white border border-gray-150/80 p-4 rounded-2xl shadow-2xs hover:border-gray-300 transition-all relative overflow-hidden flex flex-col gap-2 text-right"
                             id={`order-card-${o.orderNumber}`}
                           >
-                            {/* Artistic Flair side-stripe height highlight */}
-                            <div className={`absolute right-0 top-0 bottom-0 w-1 ${statusColors}`}></div>
+                            {/* Premium edge strip line */}
+                            <div className={`absolute right-0 top-0 bottom-0 w-1.5 ${laneColor}`}></div>
                             
                             <div className="flex justify-between items-start">
                               <div>
-                                <p className="font-extrabold text-xs text-gray-900 leading-tight">
+                                <h4 className="font-extrabold text-xs text-gray-900 leading-snug">
                                   {o.customerName}
-                                </p>
-                                <p className="text-[9px] text-[#9CA3AF] mt-1 font-mono tracking-wide">
-                                  הזמנה #{o.orderNumber} • ויסות {o.warehouse || "מחסן א'"}
-                                </p>
+                                </h4>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded font-mono">
+                                    #{o.orderNumber}
+                                  </span>
+                                  <span className="text-[9px] text-gray-400 font-medium">
+                                    • ויסות {o.warehouse || "מחסן"}
+                                  </span>
+                                </div>
                               </div>
-                              <span className={`px-2 py-0.5 text-[8px] font-black rounded-full uppercase tracking-tight ${
-                                st === 'pending' ? 'bg-amber-50 text-amber-700' : st === 'in_transit' ? 'bg-sky-50 text-sky-700' : 'bg-emerald-50 text-emerald-700'
-                              }`}>
+                              <span className={`px-2 py-0.5 text-[8px] font-black rounded-lg uppercase tracking-tight ${getStatusBadgeStyles(st)}`}>
                                 {getStatusHebrew(st)}
                               </span>
                             </div>
-                            
-                            {/* Driver Assign & Location Details representation */}
-                            <div className="flex items-center gap-2 mt-1 px-0.5">
-                              <div className="w-5.5 h-5.5 rounded-full bg-gray-150 border border-white flex items-center justify-center text-[8px] font-bold text-gray-700 select-none shrink-0 font-serif italic shadow-2xs">
-                                {driver ? driver.name.charAt(0) : "S"}
-                              </div>
-                              <p className="text-[10px] text-gray-500 leading-none truncate">
-                                <span>נהג: {driver ? driver.name : "לא שובץ"} • יעד: {o.destination}</span>
-                              </p>
+
+                            {/* Destination info */}
+                            <div className="flex items-start gap-1.5 mt-1 text-[10px] text-gray-500">
+                              <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+                              <span className="truncate leading-normal">{o.destination}</span>
                             </div>
 
-                            {o.eta && (
-                              <div className="mt-1 pt-1.5 border-t border-gray-100 flex items-center gap-1.5 text-[9px] text-gray-500">
-                                <Clock className="w-3 h-3 text-[#9CA3AF]" />
-                                <span className="font-medium truncate max-w-[90%] text-[#6B7280]">
-                                  {o.eta}
+                            {/* Driver and eta row */}
+                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100/75 flex-wrap gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-5 h-5 rounded-full bg-gray-900 text-white flex items-center justify-center text-[8px] font-black uppercase">
+                                  {driver ? driver.name.charAt(0) : "S"}
+                                </div>
+                                <span className="text-[10px] text-gray-600 font-bold">
+                                  {driver ? driver.name : "סדרן: ממתין לשיבוץ"}
                                 </span>
                               </div>
-                            )}
+
+                              {o.eta && (
+                                <div className="flex items-center gap-1 text-[9px] text-[#D97706] font-mono bg-amber-50/50 px-2 py-0.5 rounded-lg border border-amber-100/40 max-w-full">
+                                  <Clock className="w-3 h-3 text-amber-500 shrink-0" />
+                                  <span className="truncate font-semibold">{o.eta}</span>
+                                </div>
+                              )}
+                            </div>
                           </motion.div>
                         );
                       })}
@@ -310,168 +362,172 @@ export function KanbanView({ drivers }: KanbanViewProps) {
         </div>
       )}
 
-      {/* 1. EDIT / DETAIL DRAWER OVERLAY */}
+      {/* 2. Apple-Maps Style Bottom Sheet Drawer for Details */}
       <AnimatePresence>
         {selectedOrder && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" id="detail-overlay">
+          <div className="fixed inset-0 bg-black/55 z-50 flex items-end justify-center" id="detail-overlay">
             <motion.div 
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-[#FDFDFF] w-full max-w-md rounded-t-3xl min-h-[75vh] p-6 text-right flex flex-col justify-between border-t border-gray-200"
+              transition={{ type: "spring", damping: 26, stiffness: 210 }}
+              className="bg-[#FDFDFF] w-full max-w-md rounded-t-[2.5rem] p-6 text-right flex flex-col border-t border-gray-100"
+              style={{ maxHeight: "85vh" }}
               id="detail-container"
             >
-              <div>
-                {/* Close lever */}
-                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" onClick={() => setSelectedOrder(null)}></div>
-                
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <span className="text-xs font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                      הזמנה {selectedOrder.orderNumber}
-                    </span>
-                    <h2 className="text-lg font-bold text-gray-900 mt-2">{selectedOrder.customerName}</h2>
+              {/* Drag Handle block */}
+              <div 
+                className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-5 cursor-pointer" 
+                onClick={() => setSelectedOrder(null)}
+              />
+              
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-150 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                    הזמנה #{selectedOrder.orderNumber}
+                  </span>
+                  <h3 className="text-lg font-black text-gray-900 mt-2">{selectedOrder.customerName}</h3>
+                </div>
+                <button 
+                  onClick={() => setSelectedOrder(null)}
+                  className="text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 transition-all p-2 rounded-full cursor-pointer h-9 w-9 flex items-center justify-center"
+                >
+                  <XCircle className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Scrollable specs frame */}
+              <div className="space-y-4 text-xs overflow-y-auto max-h-[52vh] pr-1 pl-1">
+                {/* Active fast status update */}
+                <div>
+                  <span className="text-[9px] font-black text-gray-400 block mb-1.5 uppercase tracking-wide">עדכון מצב עבודה</span>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button 
+                      onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "pending")}
+                      className={`py-2 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                        selectedOrder.status === "pending" ? "bg-amber-500 border-amber-500 text-white shadow-xs" : "bg-gray-50 border-gray-150 text-gray-500 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      ממתין
+                    </button>
+                    <button 
+                      onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "in_transit")}
+                      className={`py-2 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                        selectedOrder.status === "in_transit" ? "bg-indigo-600 border-indigo-600 text-white shadow-xs" : "bg-gray-50 border-gray-150 text-gray-500 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Play className="w-3.5 h-3.5 shrink-0" />
+                      בדרך
+                    </button>
+                    <button 
+                      onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "delivered")}
+                      className={`py-2 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                        selectedOrder.status === "delivered" ? "bg-emerald-600 border-emerald-600 text-white shadow-xs" : "bg-gray-50 border-gray-150 text-gray-500 hover:bg-gray-100"
+                      }`}
+                    >
+                      <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                      נמסר
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => setSelectedOrder(null)}
-                    className="text-gray-400 hover:text-gray-600 bg-gray-100 p-1.5 rounded-full"
-                  >
-                    <XCircle className="w-6 h-6" />
-                  </button>
                 </div>
 
-                <div className="space-y-4 text-sm mt-3 overflow-y-auto max-h-[50vh]">
-                  {/* Status pills control */}
-                  <div>
-                    <span className="text-xs text-gray-450 block mb-2 font-semibold">סטטוס משלוח פעיל</span>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "pending")}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1 ${
-                          selectedOrder.status === "pending" ? "bg-amber-100 border-amber-300 text-amber-800 shadow-inner" : "bg-gray-50 border-gray-200 text-gray-600"
-                        }`}
-                      >
-                        <Clock className="w-3.5 h-3.5" />
-                        ממתין
-                      </button>
-                      <button 
-                        onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "in_transit")}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1 ${
-                          selectedOrder.status === "in_transit" ? "bg-sky-100 border-sky-300 text-sky-800 shadow-inner" : "bg-gray-50 border-gray-200 text-gray-600"
-                        }`}
-                      >
-                        <Play className="w-3.5 h-3.5" />
-                        בדרך לשטח
-                      </button>
-                      <button 
-                        onClick={() => selectedOrder.id && updateOrderStatus(selectedOrder.id, "delivered")}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1 ${
-                          selectedOrder.status === "delivered" ? "bg-emerald-100 border-emerald-300 text-emerald-800 shadow-inner" : "bg-gray-50 border-gray-200 text-gray-600"
-                        }`}
-                      >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        נמסר
-                      </button>
+                {/* Info Card specifications grid */}
+                <div className="bg-gray-50/70 p-4.5 rounded-[1.8rem] border border-gray-150/40 space-y-3.5">
+                  <div className="flex items-start gap-2.5">
+                    <MapPin className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-[9px] font-black text-gray-400 uppercase">יעד פריקה בשטח</span>
+                      <p className="font-extrabold text-gray-900 text-[11px] mt-0.5">{selectedOrder.destination}</p>
                     </div>
                   </div>
 
-                  {/* Core details mapping table */}
-                  <div className="bg-gray-50 p-4 rounded-2xl border border-gray-205 space-y-3.5">
-                    <div className="flex items-start gap-2.5">
-                      <MapPin className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  {selectedOrder.items && (
+                    <div className="flex items-start gap-2.5 pt-2 border-t border-gray-100">
+                      <Package className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                       <div>
-                        <span className="text-xs text-gray-450 block">כתובת יעד לפריקה</span>
-                        <span className="font-medium text-gray-800 text-sm">{selectedOrder.destination}</span>
+                        <span className="text-[9px] font-black text-gray-400 uppercase">תכולת מטען וציוד עזר</span>
+                        <p className="font-semibold text-gray-800 text-[11px] mt-0.5">{selectedOrder.items}</p>
                       </div>
                     </div>
+                  )}
 
-                    {selectedOrder.items && (
-                      <div className="flex items-start gap-2.5">
-                        <Package className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <span className="text-xs text-gray-450 block">פירוט ציוד ומטען</span>
-                          <span className="font-medium text-gray-800 text-sm">{selectedOrder.items}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-start gap-2">
-                        <Calendar className="w-4 h-4 text-gray-505 flex-shrink-0" />
-                        <div>
-                          <span className="text-xs text-gray-450 block">תאריך אספקה</span>
-                          <span className="text-xs font-medium text-gray-800">{selectedOrder.date}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Clock className="w-4 h-4 text-gray-505 flex-shrink-0" />
-                        <div>
-                          <span className="text-xs text-gray-450 block">שעת יציאה מתוכננת</span>
-                          <span className="text-xs font-medium text-gray-800">{selectedOrder.time || "לא צוין"}</span>
-                        </div>
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                    <div className="flex items-start gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-[9px] font-black text-gray-400 uppercase">תאריך אספקה</span>
+                        <p className="text-[10px] font-bold text-gray-800 mt-0.5">{selectedOrder.date}</p>
                       </div>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div className="flex items-start gap-2">
+                      <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
                       <div>
-                        <span className="text-xs text-gray-450 block">מחסן אספקה מקור</span>
-                        <span className="text-xs font-medium text-gray-800">{selectedOrder.warehouse || "חצר אשדוד"}</span>
-                      </div>
-                      <div>
-                        <span className="text-xs text-gray-450 block">תשלום ומסמכים קשורים</span>
-                        <span className="text-xs font-mono text-gray-800">{selectedOrder.documentIds || "-"}</span>
+                        <span className="text-[9px] font-black text-gray-400 uppercase">שעת יציאה</span>
+                        <p className="text-[10px] font-bold text-gray-800 mt-0.5">{selectedOrder.time || "לא נקבעה"}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Driver allocation & AI prediction trigger */}
-                  <div>
-                    <label className="text-xs font-semibold text-gray-650 block mb-1">נהג משובץ במערכת</label>
-                    <select
-                      value={selectedOrder.driverId || ""}
-                      onChange={(e) => selectedOrder.id && handleAssignDriverAndEta(selectedOrder.id, e.target.value, selectedOrder.eta || "טרם חושב")}
-                      className="w-full bg-white border border-gray-300 rounded-xl py-2 px-3 text-sm text-gray-800 focus:ring-1 focus:ring-amber-500 outline-none"
-                    >
-                      <option value="">-- בחר נהג לשיבוץ --</option>
-                      {drivers.map(d => (
-                        <option key={d.id} value={d.id}>
-                          {d.name} ({d.vehicleType === 'crane' ? 'מנוף' : 'משאית'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Target prediction box */}
-                  <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-4 flex flex-col gap-2.5">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-amber-800 flex items-center gap-1">
-                        <Layers className="w-3.5 h-3.5 text-amber-600" />
-                        חיזוי זמן הגעה משוער (ETA AI)
-                      </span>
-                      <button 
-                        onClick={() => handlePredictEtaAPI(selectedOrder)}
-                        className="bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded-lg hover:bg-black transition-all flex items-center gap-1"
-                      >
-                        <Navigation className="w-3 h-3 text-amber-500" />
-                        עדכן חיזוי
-                      </button>
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                    <div>
+                      <span className="text-[9px] font-black text-gray-400 uppercase">מחסן מקור</span>
+                      <p className="text-[10px] font-bold text-gray-800 mt-0.5">{selectedOrder.warehouse || "חצר אשדוד"}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-700 leading-relaxed font-mono bg-white p-2 rounded-lg border border-amber-100">
-                        {selectedOrder.eta || "ממתין לפקודת חישוב מצב כבישים..."}
-                      </p>
+                      <span className="text-[9px] font-black text-gray-400 uppercase font-sans">מסמכים / תעודות</span>
+                      <p className="text-[10px] font-bold text-gray-800 mt-0.5 font-mono">{selectedOrder.documentIds || "אין מסמכים"}</p>
                     </div>
+                  </div>
+                </div>
+
+                {/* Driver select picker */}
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-wide">שיבוץ נהג ומוביל</label>
+                  <select
+                    value={selectedOrder.driverId || ""}
+                    onChange={(e) => selectedOrder.id && handleAssignDriverAndEta(selectedOrder.id, e.target.value, selectedOrder.eta || "טרם חושב")}
+                    className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs text-gray-800 focus:ring-1 focus:ring-gray-900 outline-none font-medium h-10 cursor-pointer"
+                  >
+                    <option value="">-- ללא שיבוץ (סדרן) --</option>
+                    {drivers.map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} ({d.vehicleType === 'crane' ? 'מנוף' : 'משאית'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* AI-powered prediction module */}
+                <div className="bg-[#FFFBEB] border border-amber-200/70 rounded-[1.8rem] p-4 flex flex-col gap-2">
+                  <div className="flex justify-between items-center flex-wrap gap-2">
+                    <span className="text-[10px] font-black text-[#B45309] flex items-center gap-1 uppercase tracking-wider">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                      חיזוי זמן הגעה משוער (Comax & Gemini API)
+                    </span>
+                    <button 
+                      onClick={() => handlePredictEtaAPI(selectedOrder)}
+                      className="bg-gray-900 hover:bg-black text-white text-[9px] font-black px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                    >
+                      <Navigation className="w-3 h-3 text-amber-400" />
+                      עדכן חיזוי AI
+                    </button>
+                  </div>
+                  <div className="bg-white/90 border border-amber-100 rounded-xl p-3">
+                    <p className="text-[11px] text-gray-800 font-medium leading-relaxed font-mono">
+                      {selectedOrder.eta || "ממתין לפקודת עיבוד זמני פקק הובלה..."}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-150 flex gap-3">
+              {/* Action buttons */}
+              <div className="pt-4 mt-auto border-t border-gray-100 flex gap-2.5">
                 <button 
                   onClick={() => setSelectedOrder(null)}
-                  className="flex-1 bg-gray-900 text-white font-bold py-2.5 rounded-xl text-center text-sm"
+                  className="w-full bg-gray-900 hover:bg-black text-white font-black py-3 rounded-xl text-center text-xs transition-colors cursor-pointer"
                 >
-                  אישור וסגירה
+                  סגור ורענן
                 </button>
               </div>
             </motion.div>
@@ -479,118 +535,122 @@ export function KanbanView({ drivers }: KanbanViewProps) {
         )}
       </AnimatePresence>
 
-      {/* 2. ADD NEW ORDER DIALOG OVERLAY */}
+      {/* 3. Add New Order Slide Sheet */}
       <AnimatePresence>
         {isAddOpen && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" id="add-order-overlay">
+          <div className="fixed inset-0 bg-black/55 z-50 flex items-end justify-center" id="add-order-overlay">
             <motion.div 
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="bg-[#FDFDFF] w-full max-w-md rounded-t-3xl max-h-[90vh] p-6 text-right flex flex-col justify-between border-t border-gray-200 overflow-y-auto"
+              transition={{ type: "spring", damping: 26, stiffness: 210 }}
+              className="bg-[#FDFDFF] w-full max-w-md rounded-t-[2.5rem] p-6 text-right flex flex-col border-t border-gray-100 overflow-y-auto"
+              style={{ maxHeight: "92vh" }}
               id="add-order-container"
             >
               <form onSubmit={handleCreateOrder} className="space-y-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-lg font-bold text-gray-900">קליטת הזמנת שטח חדשה</h2>
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3.5">
+                  <div>
+                    <span className="text-[9px] uppercase tracking-widest text-[#B5BAC9] font-bold">שרשרת אספקה</span>
+                    <h3 className="text-md font-black text-gray-900 mt-0.5">פתיחת הזמנה חדשה</h3>
+                  </div>
                   <button 
                     type="button"
                     onClick={() => setIsAddOpen(false)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-900 bg-gray-100 p-2 rounded-full cursor-pointer h-8 w-8 flex items-center justify-center"
                   >
-                    <XCircle className="w-6 h-6" />
+                    <XCircle className="w-4 h-4 text-gray-500" />
                   </button>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3.5 text-xs">
                   <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">שם הלקוח לפריקה *</label>
+                    <label className="font-extrabold text-gray-700 block mb-1">שם הלקוח / חברה קבלנית *</label>
                     <input 
                       type="text"
                       required
-                      placeholder="לדוגמה: אשטרום הנדסה"
+                      placeholder="לדוגמה: אשטרום בע''מ"
                       value={formData.customerName}
                       onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                      className="w-full bg-white border border-gray-300 rounded-xl py-2 px-3 text-sm text-gray-850 outline-none focus:border-amber-500"
+                      className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs outline-none focus:border-gray-900 h-10"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">מספר הזמנה *</label>
+                      <label className="font-extrabold text-gray-700 block mb-1">מספר הזמנה *</label>
                       <input 
                         type="text"
                         required
                         placeholder="ORD-7751"
                         value={formData.orderNumber}
                         onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })}
-                        className="w-full bg-white border border-gray-300 rounded-xl py-2 px-3 text-sm text-gray-850 outline-none focus:border-amber-500"
+                        className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs font-mono outline-none focus:border-gray-900 h-10"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">מלווה מסמכים (תעודה)</label>
+                      <label className="font-extrabold text-gray-700 block mb-1">תעודת משלוח / מסמך</label>
                       <input 
                         type="text"
-                        placeholder="#T-998"
+                        placeholder="לדוגמה: #T-998"
                         value={formData.documentIds}
                         onChange={(e) => setFormData({ ...formData, documentIds: e.target.value })}
-                        className="w-full bg-white border border-gray-300 rounded-xl py-2 px-3 text-sm text-gray-850 outline-none focus:border-amber-500"
+                        className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs font-mono outline-none focus:border-gray-900 h-10"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">כתובת יעד לפריקה *</label>
+                    <label className="font-extrabold text-gray-700 block mb-1">כתובת יעד לפריקה *</label>
                     <input 
                       type="text"
                       required
-                      placeholder="רחוב פלוני 42, ראש העין"
+                      placeholder="לדוגמה: רחוב פלוני 42, הרצליה"
                       value={formData.destination}
                       onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-                      className="w-full bg-white border border-gray-300 rounded-xl py-2 px-3 text-sm text-gray-850 outline-none focus:border-amber-500"
+                      className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs outline-none focus:border-gray-900 h-10"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">תיאור תכולה ומטען</label>
+                    <label className="font-extrabold text-gray-700 block mb-1">פירוט ציוד, לוגים או פריטים</label>
                     <textarea 
-                      placeholder="שקי מלט במשקל 2 טון, שרשרת, מנופי עומס קל"
+                      placeholder="רשום מנופים, שרשראות עגינה, משקל או כמות..."
                       rows={2}
                       value={formData.items}
                       onChange={(e) => setFormData({ ...formData, items: e.target.value })}
-                      className="w-full bg-white border border-gray-300 rounded-xl py-2 px-3 text-sm text-gray-850 outline-none focus:border-amber-500"
+                      className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs outline-none focus:border-gray-900"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">תאריך הפצה</label>
+                      <label className="font-extrabold text-gray-700 block mb-1">תאריך אספקה</label>
                       <input 
                         type="date"
                         value={formData.date}
                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                        className="w-full bg-white border border-gray-300 rounded-xl py-2 px-3 text-sm text-gray-850 outline-none focus:border-amber-500"
+                        className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs outline-none h-10"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">שעת יציאה</label>
+                      <label className="font-extrabold text-gray-700 block mb-1">שעת יציאה</label>
                       <input 
                         type="time"
                         value={formData.time}
                         onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                        className="w-full bg-white border border-gray-300 rounded-xl py-2 px-3 text-sm text-gray-850 outline-none focus:border-amber-500"
+                        className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs outline-none h-10"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">מחסן אספקה</label>
+                      <label className="font-extrabold text-gray-700 block mb-1">מחסן מקור</label>
                       <select 
                         value={formData.warehouse}
                         onChange={(e) => setFormData({ ...formData, warehouse: e.target.value })}
-                        className="w-full bg-white border border-gray-300 rounded-xl py-2 px-3 text-sm text-gray-850 outline-none"
+                        className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs outline-none h-10"
                       >
                         <option value="חצר אשדוד">חצר אשדוד</option>
                         <option value="חצר שפד'ן">חצר שפד'ן</option>
@@ -598,11 +658,11 @@ export function KanbanView({ drivers }: KanbanViewProps) {
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">נהג משויך</label>
+                      <label className="font-extrabold text-gray-700 block mb-1">שיבוץ נהג מוקדם</label>
                       <select 
                         value={formData.driverId}
                         onChange={(e) => setFormData({ ...formData, driverId: e.target.value })}
-                        className="w-full bg-white border border-gray-300 rounded-xl py-2 px-3 text-sm text-gray-850 outline-none"
+                        className="w-full bg-white border border-gray-250 rounded-xl py-2 px-3 text-xs outline-none h-10"
                       >
                         <option value="">-- ללא נהג משויך --</option>
                         {drivers.map(d => (
@@ -613,17 +673,17 @@ export function KanbanView({ drivers }: KanbanViewProps) {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-150 flex gap-3">
+                <div className="pt-4 border-t border-gray-100 flex gap-3 mt-4">
                   <button 
                     type="button"
                     onClick={() => setIsAddOpen(false)}
-                    className="flex-1 bg-gray-100 text-gray-700 font-bold py-2.5 rounded-xl text-center text-sm border border-gray-200"
+                    className="flex-1 bg-gray-100 text-gray-600 font-black py-3 rounded-xl text-center text-xs border border-gray-200 cursor-pointer hover:bg-gray-150 transition-colors"
                   >
                     ביטול
                   </button>
                   <button 
                     type="submit"
-                    className="flex-1 bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-xl text-center text-sm font-bold shadow-md"
+                    className="flex-1 bg-gray-900 hover:bg-black text-white font-black py-3 rounded-xl text-center text-xs shadow-md cursor-pointer transition-colors"
                   >
                     צרף למערכת
                   </button>
