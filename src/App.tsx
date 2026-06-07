@@ -314,7 +314,12 @@ export default function App() {
                   {/* STRICT FIXED BOTTOM NAVIGATION BAR: Strict Bottom Navigation Bar for core views (Kanban, Chat, List, Drivers) */}
                   <nav className="fixed sm:absolute bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-xl border-t border-gray-150/70 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] z-50 flex justify-around items-center" id="strict-bottom-nav">
                     <button 
-                      onClick={() => setActiveTab("kanban")}
+                      onClick={() => {
+                        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+                          try { navigator.vibrate(12); } catch (e) {}
+                        }
+                        setActiveTab("kanban");
+                      }}
                       className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
                       id="nav-tab-kanban"
                       style={{ minWidth: "48px", minHeight: "48px" }}
@@ -335,7 +340,12 @@ export default function App() {
                     </button>
 
                     <button 
-                      onClick={() => setActiveTab("chat")}
+                      onClick={() => {
+                        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+                          try { navigator.vibrate(12); } catch (e) {}
+                        }
+                        setActiveTab("chat");
+                      }}
                       className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
                       id="nav-tab-chat"
                       style={{ minWidth: "48px", minHeight: "48px" }}
@@ -346,7 +356,7 @@ export default function App() {
                         <MessageSquare className="w-6.5 h-6.5" />
                         <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
-                          <span className="relative inline-flex h-3 w-3 rounded-full bg-indigo-505 bg-indigo-500"></span>
+                          <span className="relative inline-flex h-3 w-3 rounded-full bg-indigo-500"></span>
                         </span>
                       </div>
                       <span className={`text-[10px] mt-1.5 transition-colors font-black ${
@@ -355,7 +365,12 @@ export default function App() {
                     </button>
 
                     <button 
-                      onClick={() => setActiveTab("inventory")}
+                      onClick={() => {
+                        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+                          try { navigator.vibrate(12); } catch (e) {}
+                        }
+                        setActiveTab("inventory");
+                      }}
                       className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
                       id="nav-tab-inventory"
                       style={{ minWidth: "48px", minHeight: "48px" }}
@@ -366,7 +381,7 @@ export default function App() {
                         <Box className="w-6.5 h-6.5" />
                         {lowStockCount > 0 && (
                           <span className="absolute -top-1 -right-1 flex h-5.5 w-5.5 items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white ring-2 ring-white animate-pulse shadow-xs">
-                            {lowStockCount}
+                             {lowStockCount}
                           </span>
                         )}
                       </div>
@@ -376,7 +391,12 @@ export default function App() {
                     </button>
 
                     <button 
-                      onClick={() => setActiveTab("drivers")}
+                      onClick={() => {
+                        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+                          try { navigator.vibrate(12); } catch (e) {}
+                        }
+                        setActiveTab("drivers");
+                      }}
                       className="flex flex-col items-center justify-center flex-1 relative active:scale-90 transition-all duration-150 cursor-pointer select-none"
                       id="nav-tab-drivers"
                       style={{ minWidth: "48px", minHeight: "48px" }}
