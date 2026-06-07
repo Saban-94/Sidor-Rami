@@ -140,11 +140,22 @@ export function NoaChatView() {
     setLoadingChat(true);
 
     try {
+      // Check if user is asking about the system status, job statuses, or stock balance
+      const isStatusQuery = /סטטוס|מצב|מערכת|מלאי|חוסר|הזמנות|עבודה|דוח|פעילות|status|system|pending|jobs|stock|inventory/i.test(userMsg);
+      
+      let enrichedMessage = userMsg;
+      if (isStatusQuery) {
+        const pendingCount = allOrders.filter(o => o.status === "pending" || o.status === "in_transit").length;
+        const lowStockCount = inventoryList.filter(item => item.currentStock < (item.minStock || 0)).length;
+        
+        enrichedMessage = `${userMsg}\n\n[הערת מערכת SabanOS - נתונים חיים נוכחיים לצורך מענה מדויק: יש כרגע ${pendingCount} משימות/הזמנות פעילות הממתינות או בדרך (pending/in_transit), ועל פי מחסן המלאי יש כרגע ${lowStockCount} פריטים במצב חוסר מלאי (מלאי נוכחי קטן ממלאי מינימום). אנא שלבי את הנתונים המספריים הללו במילים שלך בתוך המענה המעוצב שלך]`;
+      }
+
       const response = await fetch("/api/gemini/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: userMsg,
+          message: enrichedMessage,
           history: messages.map(m => ({ role: m.role, content: m.content })),
           inventory: inventoryList,
           orders: allOrders
