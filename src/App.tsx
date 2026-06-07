@@ -12,6 +12,7 @@ import { NoaChatView } from "./components/NoaChatView";
 import { InventoryCustomerView } from "./components/InventoryCustomerView";
 import { DriversView } from "./components/DriversView";
 import { RemindersOverview } from "./components/RemindersOverview";
+import { NotificationManager } from "./components/NotificationManager";
 import { Driver } from "./types";
 import { 
   Briefcase, MessageSquare, Shield, HelpCircle, LogOut, Kanban, Box, Users, HardHat, Bell, Key, Sparkles, AlertTriangle
@@ -197,6 +198,9 @@ export default function App() {
 
                     {/* Header Right utilities features */}
                     <div className="flex items-center gap-2">
+                      {/* Push Alerts & Chime sound trigger */}
+                      <NotificationManager />
+
                       {/* Reminders Pill indicator popups */}
                       <RemindersOverview />
 

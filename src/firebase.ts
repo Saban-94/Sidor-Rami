@@ -4,7 +4,7 @@ import { getFirestore } from "firebase/firestore";
 // @ts-ignore
 import firebaseConfig from "../firebase-applet-config.json";
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore specifying database ID
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
