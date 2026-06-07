@@ -371,7 +371,26 @@ export function NoaChatView() {
       </div>
 
       {/* Main Bottom User Input Bar */}
-      <div className="bg-white border-t border-gray-100 px-5 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shrink-0" id="prompt-bar">
+      <div className="bg-white border-t border-gray-100 px-5 pt-2.5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shrink-0 flex flex-col gap-2" id="prompt-bar">
+        <AnimatePresence>
+          {loadingChat && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, y: 4 }}
+              animate={{ opacity: 1, height: "auto", y: 0 }}
+              exit={{ opacity: 0, height: 0, y: 4 }}
+              className="flex items-center gap-2 px-1 text-indigo-600 font-sans text-[10.5px] font-black select-none leading-none overflow-hidden"
+              id="noa-typing-indicator"
+            >
+              <div className="flex items-center gap-1 bg-indigo-50/70 border border-indigo-100/50 px-2.5 py-1 rounded-full">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-650"></span>
+                </span>
+                <span className="animate-pulse">נועה מקלידה...</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <form onSubmit={handleSendMessage} className="flex gap-2.5 items-center">
           <input 
             type="text"
