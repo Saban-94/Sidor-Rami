@@ -32,6 +32,7 @@ export function NoaChatView() {
 
   // Active orders reference for morning summary
   const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [inventoryList, setInventoryList] = useState<InventoryItem[]>([]);
   
   // Morning report compilation states
   const [reportDate, setReportDate] = useState(new Date().toISOString().split("T")[0]);
@@ -44,12 +45,18 @@ export function NoaChatView() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Read orders & morning reports
+  // Read orders, inventory & morning reports
   useEffect(() => {
     const unsubOrders = onSnapshot(collection(db, "orders"), (snap) => {
       const list: Order[] = [];
       snap.forEach(d => list.push({ ...d.data(), id: d.id } as Order));
       setAllOrders(list);
+    });
+
+    const unsubInventory = onSnapshot(collection(db, "inventory"), (snap) => {
+      const list: InventoryItem[] = [];
+      snap.forEach(d => list.push({ ...d.data(), id: d.id } as InventoryItem));
+      setInventoryList(list);
     });
 
     const unsubReports = onSnapshot(collection(db, "morning_reports"), (snap) => {
@@ -60,9 +67,67 @@ export function NoaChatView() {
 
     return () => {
       unsubOrders();
+      unsubInventory();
       unsubReports();
     };
   }, []);
+
+  const createOrderFromAI = async (orderData: Partial<Order>) => {
+    try {
+      const orderNumber = orderData.orderNumber || `SABAN-${Date.now().toString().slice(-6)}`;
+      const docId = orderNumber.toLowerCase().trim();
+      
+      const finalOrder: Order = {
+        orderNumber,
+        customerName: orderData.customerName || "לקוח לא ידוע",
+        destination: orderData.destination || "לא צוין יעד משלוח",
+        date: orderData.date || new Date().toISOString().split("T")[0],
+        time: orderData.time || "08:00",
+        items: orderData.items || "חומרי בניין לוגיסטיים",
+        status: "pending",
+        warehouse: orderData.warehouse || "מחסן ראשי",
+        documentIds: orderData.documentIds || "",
+        eta: "ממתין לשיבוץ נהג"
+      };
+
+      await setDoc(doc(db, "orders", docId), finalOrder);
+      
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "model",
+          content: `
+            <div class="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-900 text-right space-y-1 shadow-sm">
+              <div class="font-black text-xs flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>✅ הזמנה ${orderNumber} נוצרה ועודכנה במערכת!</span>
+              </div>
+              <p class="text-[10px] font-bold text-gray-700">כרטיס הובלה ומעקב לוגיסטי עבור <strong>${finalOrder.customerName}</strong> נוצר בסטטוס סדרנות פתוחה.</p>
+            </div>
+          `
+        }
+      ]);
+    } catch (error) {
+      console.error("Failed to create order from AI confirmation", error);
+      alert("שגיאה בפתיחת כרטיס הובלה דרך עוזרת ה-AI.");
+    }
+  };
+
+  const handleChatContainerClick = async (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const triggerBtn = target.closest("[data-order-trigger]");
+    if (triggerBtn) {
+      const orderDataStr = triggerBtn.getAttribute("data-order-trigger");
+      if (orderDataStr) {
+        try {
+          const orderData = JSON.parse(orderDataStr);
+          await createOrderFromAI(orderData);
+        } catch (err) {
+          console.error("Failed to parse trigger data", err);
+        }
+      }
+    }
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,12 +144,19 @@ export function NoaChatView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMsg,
-          history: messages
+          history: messages,
+          inventory: inventoryList,
+          orders: allOrders
         })
       });
       const data = await response.json();
       if (data.text) {
-        setMessages(prev => [...prev, { role: "model", content: data.text }]);
+        let cleanText = data.text;
+        // Strip ```html and ``` blocks for render safety
+        if (cleanText.trim().startsWith("```")) {
+          cleanText = cleanText.replace(/^```html\s*|\s*```$/gi, "").replace(/^```\s*|\s*```$/gi, "");
+        }
+        setMessages(prev => [...prev, { role: "model", content: cleanText }]);
       } else {
         setMessages(prev => [...prev, { role: "model", content: "מצטערת, משהו השתבש בעיבוד הבקשה לשרת." }]);
       }
@@ -247,18 +319,36 @@ ${JSON.stringify(activePending, null, 2)}
           </div>
 
           {/* Interactive Chat Stream list */}
-          <div className="flex-grow overflow-y-auto space-y-3 pr-1 pl-1 mb-3 scrollbar-none">
-            {messages.map((m, idx) => (
-              <div key={idx} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
-                <div className={`p-3.5 rounded-2xl text-[11px] leading-relaxed max-w-[88%] shadow-2xs ${
-                  m.role === "user" 
-                    ? "bg-gray-900 text-white rounded-br-none" 
-                    : "bg-gray-50 text-gray-800 rounded-bl-none border border-gray-150/70"
-                }`}>
-                  <p className="whitespace-pre-line font-medium">{m.content}</p>
+          <div 
+            className="flex-grow overflow-y-auto space-y-3 pr-1 pl-1 mb-3 scrollbar-none"
+            onClick={handleChatContainerClick}
+          >
+            {messages.map((m, idx) => {
+              const isHtml = m.role === "model" && (
+                m.content.includes("<div") || 
+                m.content.includes("<p") || 
+                m.content.includes("<span") || 
+                m.content.includes("<button")
+              );
+              return (
+                <div key={idx} className={`flex ${m.role === "user" ? "justify-start" : "justify-end"}`}>
+                  {isHtml ? (
+                    <div 
+                      className="w-full max-w-[95%] text-right text-[11px] leading-relaxed" 
+                      dangerouslySetInnerHTML={{ __html: m.content }} 
+                    />
+                  ) : (
+                    <div className={`p-3.5 rounded-2xl text-[11px] leading-relaxed max-w-[88%] shadow-2xs ${
+                      m.role === "user" 
+                        ? "bg-gray-900 text-white rounded-br-none" 
+                        : "bg-gray-50 text-gray-800 rounded-bl-none border border-gray-150/70"
+                    }`}>
+                      <p className="whitespace-pre-line font-medium">{m.content}</p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {loadingChat && (
               <div className="flex justify-end">
                 <div className="bg-gray-50 border border-gray-150/70 p-2.5 rounded-2xl rounded-bl-none flex items-center gap-1.5">

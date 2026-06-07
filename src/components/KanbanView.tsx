@@ -19,6 +19,9 @@ export function KanbanView({ drivers, setActiveTab }: KanbanViewProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [showDateRange, setShowDateRange] = useState(false);
   
   // Mobile ergonomics: Active lane selection filter for optimized mobile viewport view
   const [activeLane, setActiveLane] = useState<Order["status"] | "all">("all");
@@ -149,11 +152,42 @@ export function KanbanView({ drivers, setActiveTab }: KanbanViewProps) {
     }
   };
 
-  const filteredOrders = orders.filter(o => 
-    (o.customerName || '').toLowerCase().includes((searchQuery || '').toLowerCase()) || 
-    (o.orderNumber || '').toLowerCase().includes((searchQuery || '').toLowerCase()) || 
-    (o.destination && o.destination.toLowerCase().includes((searchQuery || '').toLowerCase()))
-  );
+  const setTodayPreset = () => {
+    const today = new Date().toISOString().split("T")[0];
+    setStartDate(today);
+    setEndDate(today);
+  };
+
+  const setThisWeekPreset = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+    const start = new Date(now);
+    start.setDate(now.getDate() - dayOfWeek);
+    
+    const end = new Date(now);
+    end.setDate(now.getDate() + (6 - dayOfWeek));
+
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
+  };
+
+  const clearDateRange = () => {
+    setStartDate("");
+    setEndDate("");
+  };
+
+  const filteredOrders = orders.filter(o => {
+    const matchesSearch = (o.customerName || '').toLowerCase().includes((searchQuery || '').toLowerCase()) || 
+                          (o.orderNumber || '').toLowerCase().includes((searchQuery || '').toLowerCase()) || 
+                          (o.destination && o.destination.toLowerCase().includes((searchQuery || '').toLowerCase()));
+    
+    if (!matchesSearch) return false;
+
+    if (startDate && o.date < startDate) return false;
+    if (endDate && o.date > endDate) return false;
+
+    return true;
+  });
 
   const getStatusHebrew = (status: Order["status"]) => {
     switch (status) {
@@ -195,18 +229,117 @@ export function KanbanView({ drivers, setActiveTab }: KanbanViewProps) {
           </motion.button>
         </div>
 
-        {/* 2. Unified Search Input */}
-        <div className="relative">
-          <input 
-            type="text"
-            placeholder="חפש לקוח, מס' הזמנה או יעד..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-150 rounded-xl py-2.5 pr-9 pl-4 text-xs text-gray-900 focus:outline-none focus:ring-1.5 focus:ring-gray-900 focus:bg-white transition-all text-right placeholder-gray-400 font-medium"
-            id="kanban-search-input"
-          />
-          <Search className="absolute right-3.5 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+        {/* 2. Unified Search Input & Date Filter Trigger */}
+        <div className="flex gap-2" id="kanban-filter-row">
+          <div className="relative flex-1">
+            <input 
+              type="text"
+              placeholder="חפש לקוח, מס' הזמנה או יעד..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-150 rounded-xl py-2.5 pr-9 pl-4 text-xs text-gray-900 focus:outline-none focus:ring-1.5 focus:ring-gray-900 focus:bg-white transition-all text-right placeholder-gray-400 font-medium"
+              id="kanban-search-input"
+            />
+            <Search className="absolute right-3.5 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+          </div>
+          <button
+            onClick={() => setShowDateRange(!showDateRange)}
+            className={`px-3.5 rounded-xl border flex items-center justify-center gap-1.5 transition-all text-xs font-black select-none cursor-pointer h-[38px] ${
+              showDateRange || startDate || endDate
+                ? "bg-gray-900 border-gray-900 text-white shadow-xs"
+                : "bg-gray-50 border-gray-150 text-gray-600 hover:bg-gray-100"
+            }`}
+            id="toggle-date-range-filter"
+            title="סינון לפי תאריכים"
+          >
+            <Calendar className="w-4 h-4" />
+            <span className="hidden sm:inline">תאריכים</span>
+            {(startDate || endDate) && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            )}
+          </button>
         </div>
+
+        {/* Expanded Date Range Filter Panel */}
+        <AnimatePresence>
+          {showDateRange && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden bg-gray-50/70 border border-gray-150 rounded-2xl p-4 flex flex-col gap-3 text-right"
+              id="date-range-filter-panel"
+            >
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Start Date */}
+                <div className="flex flex-col gap-1 flex-1 relative">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">מתאריך משלוח</span>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full bg-white border border-gray-150 rounded-xl py-2 px-3 pl-8 text-xs text-gray-900 focus:outline-none focus:ring-1.5 focus:ring-gray-900 transition-all text-right font-medium"
+                      id="date-filter-start"
+                    />
+                    <Calendar className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* End Date */}
+                <div className="flex flex-col gap-1 flex-1 relative">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">עד תאריך משלוח</span>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full bg-white border border-gray-150 rounded-xl py-2 px-3 pl-8 text-xs text-gray-900 focus:outline-none focus:ring-1.5 focus:ring-gray-900 transition-all text-right font-medium"
+                      id="date-filter-end"
+                    />
+                    <Calendar className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Presets & Actions */}
+              <div className="flex items-center justify-between border-t border-gray-200/60 pt-3 mt-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-gray-400 font-bold ml-1">קיצורים:</span>
+                  <button
+                    type="button"
+                    onClick={setTodayPreset}
+                    className="px-3 py-1.5 text-[10px] font-black bg-white border border-gray-150 rounded-lg text-gray-700 hover:bg-gray-100 transition-all active:scale-95 cursor-pointer"
+                    id="preset-today"
+                  >
+                    היום
+                  </button>
+                  <button
+                    type="button"
+                    onClick={setThisWeekPreset}
+                    className="px-3 py-1.5 text-[10px] font-black bg-white border border-gray-150 rounded-lg text-gray-700 hover:bg-gray-100 transition-all active:scale-95 cursor-pointer"
+                    id="preset-this-week"
+                  >
+                    השבוע
+                  </button>
+                </div>
+                
+                {(startDate || endDate) && (
+                  <button
+                    type="button"
+                    onClick={clearDateRange}
+                    className="px-3 py-1.5 text-[10px] font-black bg-rose-50 border border-rose-100 rounded-lg text-rose-600 hover:bg-rose-100 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
+                    id="btn-clear-dates"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>נקה הכל</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* 3. Mobile Navigation Slider Segment: isolate different lanes or view all */}
         <div className="flex bg-gray-50 border border-gray-100/80 p-1 rounded-xl gap-0.5" id="kanban-mobile-lane-selector">

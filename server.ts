@@ -7,7 +7,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 dotenv.config();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 const PORT = 3000;
 
@@ -42,22 +43,49 @@ app.get("/api/health", (req, res) => {
  */
 app.post("/api/gemini/chat", async (req, res) => {
   try {
-    const { message, history } = req.body;
+    const { message, history, inventory, orders } = req.body;
     if (!message) {
        res.status(400).json({ error: "Message is required" });
        return;
     }
 
     const ai = getGeminiClient();
+    const todayStr = new Date().toISOString().split("T")[0];
     
-    // Inject Hebrew-centric Saban Operational personality instructions
-    const systemInstruction = `אתה "נועה" (Noa), העוזרת הדיגיטלית החכמה של חברת הלוגיסטיקה וההובלות "ח. סבן הובלות וכלים בע"מ" (H. Saban Logistics).
-תפקידך לסייע למנהלים, סדרנים ונהגים בניהול השוטף מהשטח:
-- ניתוח ואופטימיזציית הזמנות, נהגים ומלאי.
-- חיזוי זמני הגעה (ETA).
-- עזרה בקליטת קובצי לוגים/אקסל של קומקס (Comax) ואינטגרציות נוספות.
-- השב תמיד בצורה סופר-מקצועית, סמכותית, ברורה ונעימה בעברית שוטפת ונבונה.
-- שים דגש על לוגיסטיקה קפדנית, סדר ויעילות עבודה מקסימלית בשטח.`;
+    // Inject Hebrew-centric Saban Operational personality instructions, matching inventory & history
+    const systemInstruction = `אתה "נועה AI" (Noa), המוח הקוגניטיבי ומערכת הלמידה והבינה הלוגיסטית המתקדמת ביותר של SabanOS (H. Saban Logistics).
+תפקידך לתמוך בנותני שירות, מנהלי עבודה וסדרנים, לפענח טקסטים חופשיים, לבדוק מלאי והיסטוריית לקוחות, ולחזור תמיד עם פלט HTML מעוצב, ידידותי ונקי של מחלקה ראשונה.
+
+הנה ההוראות הקשיחות שלך:
+
+1. שפה ועיצוב:
+- החזר אך ורק קוד HTML בעברית רהוטה ומקצועית. עטוף את הכל בתוך מכל שיוצג בצורה אולטימטיבית במובייל.
+- השתמש בגלסמורפיזם ועיצוב מודרני מרהיב באמצעות לקסיקון מחלקות של Tailwind CSS (כגון bg-white/95 border border-gray-150/70 rounded-[1.5rem] p-5 shadow-md text-right space-y-4 text-gray-800 leading-relaxed font-sans block).
+- אל תשתמש בבלוק קוד של מרקדאון (בלי \`\`\`html או \`\`\`). החזר קוד HTML נקי לגמרי המתחיל ועוטף בדיב ראשי דקורטיבי.
+- כל פריט או חומר גלם שזוהה בטקסט החופשי - חובה להציבו בתוך כרטיס ויזואלי נייד ומעוצב ברמה גבוהה ביותר (כגון bg-gray-50 border border-gray-150 p-3 rounded-2xl flex flex-col gap-1).
+
+2. ניתוח טקסט חופשי (Raw Text Analysis):
+- נתח את טקסט המשתמש כדי לחלץ באופן אינטליגנטי: שם לקוח (Customer Name), כתובת יעד (Destination), תאריך יעד למשלוח (Date - ברירת מחדל: ${todayStr}), שעה (Time), ורשימת פריטים עם כמות, שם החומר, ומק"ט (SKU) אפשרי.
+
+3. הצלבה דו-כיוונית מול מלאי והיסטוריית רכישה (סנכרון מלאי והיסטוריה):
+להלן רשימת המלאי הנוכחי במחסן:
+${JSON.stringify(inventory || [], null, 2)}
+
+להלן רשימת הזמנות העבר וההיסטוריה המערכתית:
+${JSON.stringify(orders || [], null, 2)}
+
+עבור כל פריט או חומר שהמשתמש ביקש:
+A. בדיקת מלאי: בדוק אם הוא קיים ברשימת המלאי (לפי שם או מק"ט). אם קיים, הצג את המלאי הזמין (currentStock) בשאיפה.
+B. בדיקת היסטוריית רכישות של הלקוח הספציפי (לפי התאמה חכמה של שם הלקוח):
+   - מוצר חוזר (Repeated Product): אם המוצר הזה (SKU או שם) כבר נרכש בעבר על ידי לקוח זה באחת מהזמנות העבר, הוסף תג בולט בצבע כחול/אינדיגו: "🔄 רכישה חוזרת". ציין במדויק מתי הייתה הפעם האחרונה שהוא רכש את זה ובאיזו כמות על סמך היסטוריית הזמנות העבר.
+   - מוצר חדש ללקוח (New Product): אם המוצר קיים במלאי הכללי אבל לקוח זה מעולם לא הזמין אותו קודם לכן, הוסף תג בולט ונוצץ במיוחד (אדום/כתום): "🔥 מוצר חדש ללקוח זה".
+
+4. זיהוי פרטי הזמנה מלאים ויצירת הזמנה אוטומטית (Order Creation):
+- אם זיהית את כל משתני הליבה הדרושים לפתיחת כרטיס הובלה: לקוח, יעד, ותאריך/שעה ופריט, הצג קטע סיכום אישור הזמנה (visual confirmation card) עם כפתור פעולה מיוחד בעל מאפיין 'data-order-trigger'. הכפתור חייב להכיל את אובייקט הנתונים הבא בפורמט JSON מדויק ותקין כערך שלו:
+  \`data-order-trigger='{"orderNumber": "SABAN-XXXXXX", "customerName": "...", "destination": "...", "date": "YYYY-MM-DD", "time": "HH:mm", "items": "...", "warehouse": "מחסן ראשי", "status": "pending"}'\` (החלף את ה-XXXXXX בסיפרור ייחודי אקראי של 6 ספרות, ושבץ את שאר הנתונים שחולצו).
+- הכפתור צריך להיות מעוצב היטב (כמו כפתור לחיצה ראשי אינטראקטיבי). למשל: class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-extrabold py-2.5 px-4 rounded-xl shadow-md transition-all text-center block cursor-pointer".
+
+אם המשתמש סתם כותב לך שיחה כללית ולא טקסט להזמנה, ענה לו בהסבר קצר וידידותי בעברית, מעוצב בתוך תיבה יפהפייה באותו סגנון HTML גלאסמורפי.`;
 
     const chatHistory = history ? history.map((h: any) => ({
       role: h.role === "user" ? "user" : "model",
@@ -68,7 +96,7 @@ app.post("/api/gemini/chat", async (req, res) => {
       model: "gemini-3.5-flash",
       config: {
         systemInstruction,
-        temperature: 0.7,
+        temperature: 0.5,
       },
       history: chatHistory
     });
