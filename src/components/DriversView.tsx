@@ -9,11 +9,13 @@ import { motion, AnimatePresence } from "motion/react";
 
 interface DriversViewProps {
   drivers: Driver[];
+  globalSearchQuery?: string;
 }
 
-export function DriversView({ drivers }: DriversViewProps) {
+export function DriversView({ drivers, globalSearchQuery = "" }: DriversViewProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const effectiveQuery = globalSearchQuery || searchQuery;
 
   const [driverForm, setDriverForm] = useState({
     name: "",
@@ -73,9 +75,9 @@ export function DriversView({ drivers }: DriversViewProps) {
   };
 
   const filteredDrivers = drivers.filter(d => 
-    (d.name || '').toLowerCase().includes((searchQuery || '').toLowerCase()) || 
-    (d.plateNumber && d.plateNumber.toLowerCase().includes((searchQuery || '').toLowerCase())) ||
-    (d.phone || '').toLowerCase().includes((searchQuery || '').toLowerCase())
+    (d.name || '').toLowerCase().includes((effectiveQuery || '').toLowerCase()) || 
+    (d.plateNumber && d.plateNumber.toLowerCase().includes((effectiveQuery || '').toLowerCase())) ||
+    (d.phone || '').toLowerCase().includes((effectiveQuery || '').toLowerCase())
   );
 
   const getStatusBadgeStyles = (status: Driver["status"]) => {
@@ -118,7 +120,7 @@ export function DriversView({ drivers }: DriversViewProps) {
           <input 
             type="text"
             placeholder="חפש נהג בשם, טלפון, או לוחית..."
-            value={searchQuery}
+            value={effectiveQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-gray-50 border border-gray-150 rounded-xl py-2.5 pr-9 pl-4 text-xs text-gray-900 focus:outline-none focus:ring-1.5 focus:ring-gray-900 focus:bg-white transition-all text-right placeholder-gray-400 font-medium"
             id="driver-search-field"

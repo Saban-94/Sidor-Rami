@@ -7,7 +7,11 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-export function InventoryCustomerView() {
+interface InventoryCustomerViewProps {
+  globalSearchQuery?: string;
+}
+
+export function InventoryCustomerView({ globalSearchQuery = "" }: InventoryCustomerViewProps) {
   const [activeTab, setActiveTab] = useState<"inventory" | "customers">("inventory");
   
   // Real-time collections
@@ -17,6 +21,7 @@ export function InventoryCustomerView() {
 
   // Search filter
   const [searchQuery, setSearchQuery] = useState("");
+  const effectiveQuery = globalSearchQuery || searchQuery;
 
   // Add Item States
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -139,15 +144,15 @@ export function InventoryCustomerView() {
   };
 
   const filteredInventory = inventory.filter(i => 
-    (i.sku || '').toLowerCase().includes((searchQuery || '').toLowerCase()) || 
-    (i.name || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
-    (i.category && i.category.toLowerCase().includes((searchQuery || '').toLowerCase()))
+    (i.sku || '').toLowerCase().includes((effectiveQuery || '').toLowerCase()) || 
+    (i.name || '').toLowerCase().includes((effectiveQuery || '').toLowerCase()) ||
+    (i.category && i.category.toLowerCase().includes((effectiveQuery || '').toLowerCase()))
   );
 
   const filteredCustomers = customers.filter(c => 
-    (c.name || '').toLowerCase().includes((searchQuery || '').toLowerCase()) || 
-    (c.customerNumber || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
-    (c.phoneNumber || '').toLowerCase().includes((searchQuery || '').toLowerCase())
+    (c.name || '').toLowerCase().includes((effectiveQuery || '').toLowerCase()) || 
+    (c.customerNumber || '').toLowerCase().includes((effectiveQuery || '').toLowerCase()) ||
+    (c.phoneNumber || '').toLowerCase().includes((effectiveQuery || '').toLowerCase())
   );
 
   return (
@@ -184,7 +189,7 @@ export function InventoryCustomerView() {
           <input 
             type="text"
             placeholder={activeTab === "inventory" ? "חפש מק''ט, שם פריט או קטגוריה..." : "חפש שם חברה, קוד או טלפון..."}
-            value={searchQuery}
+            value={effectiveQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-gray-50 border border-gray-150 rounded-xl py-2.5 pr-9 pl-4 text-xs text-gray-900 focus:outline-none focus:ring-1.5 focus:ring-gray-900 focus:bg-white transition-all text-right placeholder-gray-400 font-medium"
             id="inv-search-query-field"

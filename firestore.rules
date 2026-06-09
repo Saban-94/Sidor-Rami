@@ -86,6 +86,16 @@ service cloud.firestore {
         && data.timestamp is string && data.timestamp.size() <= 128;
     }
 
+    function isValidTransfer(data) {
+      return data.keys().hasAll(['sourceBranch', 'destBranch', 'item', 'quantity', 'status', 'createdAt'])
+        && data.sourceBranch is string && data.sourceBranch.size() <= 200
+        && data.destBranch is string && data.destBranch.size() <= 200
+        && data.item is string && data.item.size() <= 300
+        && data.quantity is number
+        && data.status is string && (data.status == 'pending' || data.status == 'in_transit' || data.status == 'completed' || data.status == 'canceled')
+        && data.createdAt is string && data.createdAt.size() <= 128;
+    }
+
     // Collections matches
     match /orders/{orderId} {
       allow read: if isSignedIn();
@@ -138,6 +148,16 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && isValidTeamChatMessage(incoming()) && isValidId(messageId);
       allow update, delete: if isAdmin();
+    }
+
+    match /transfers/{transferId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidTransfer(incoming()) && isValidId(transferId);
+      allow update: if isSignedIn() && isValidTransfer(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'driverName', 'notes'])
+      );
+      allow delete: if isAdmin();
     }
   }
 }

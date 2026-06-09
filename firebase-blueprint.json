@@ -101,6 +101,22 @@
         "timestamp": { "type": "string", "description": "Date or ISO string" }
       },
       "required": ["senderId", "senderName", "text", "timestamp"]
+    },
+    "Transfer": {
+      "title": "Transfer",
+      "description": "Branch-to-branch inventory material transfers registry",
+      "type": "object",
+      "properties": {
+        "sourceBranch": { "type": "string", "description": "Source cargo warehouse" },
+        "destBranch": { "type": "string", "description": "Destination cargo warehouse" },
+        "item": { "type": "string", "description": "Material or item name" },
+        "quantity": { "type": "number", "description": "Transfer amount metric" },
+        "status": { "type": "string", "enum": ["pending", "in_transit", "completed", "canceled"], "description": "Current transfer execution stage" },
+        "driverName": { "type": "string", "description": "Assigned truck operator name" },
+        "createdAt": { "type": "string", "description": "Creation timestamp ISO" },
+        "notes": { "type": "string", "description": "Optional notes context details" }
+      },
+      "required": ["sourceBranch", "destBranch", "item", "quantity", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -131,6 +147,10 @@
     "/office_messages/{messageId}": {
       "schema": "TeamChatMessage",
       "description": "Real-time hub operations chat feed"
+    },
+    "/transfers/{transferId}": {
+      "schema": "Transfer",
+      "description": "Branch to branch logistics transfers"
     }
   }
 }

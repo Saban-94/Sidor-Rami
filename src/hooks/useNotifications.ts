@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, collection, onSnapshot } from "firebase/firestore";
 import { auth, db, app } from "../firebase";
 
 export interface WebNotification {
@@ -222,6 +222,73 @@ export function useNotifications() {
 
     return () => {
       if (unsubscribeOnMessage) unsubscribeOnMessage();
+    };
+  }, [playAlertSound]);
+
+  // Real-time listener checking Firestore for added or modified orders to trigger native push notifications
+  useEffect(() => {
+    let isInitial = true;
+    
+    const ordersCol = collection(db, "orders");
+    const unsubscribe = onSnapshot(ordersCol, (snapshot) => {
+      // Avoid spamming notifications during initial load of all historical entries
+      if (isInitial) {
+        isInitial = false;
+        return;
+      }
+
+      snapshot.docChanges().forEach((change) => {
+        const orderData = change.doc.data();
+        const orderNum = orderData.orderNumber || change.doc.id;
+        const customer = orderData.customerName || "לקוח ח. סבן";
+        const items = orderData.items || "חומרי בניין";
+        const status = orderData.status || "pending";
+
+        let title = "";
+        let body = "";
+
+        if (change.type === "added") {
+          title = `🆕 הזמנה חדשה: ${orderNum}`;
+          body = `נרשמה עבור ${customer}\nחומרים: ${items}\nסטטוס: ${status === "pending" ? "ממתין" : status}`;
+        } else if (change.type === "modified") {
+          title = `🔄 עדכון הזמנה: ${orderNum}`;
+          body = `עבור: ${customer}\nסטטוס: ${status === "pending" ? "ממתין" : status === "in_transit" ? "בדרך" : "נמסר"}\nנהג: ${orderData.driverId === "ali_driver_manual" ? "עלי משאית פריקה" : "טרם שובץ"}`;
+        }
+
+        if (title && body) {
+          const newAlert: WebNotification = {
+            id: `ord-${change.doc.id}-${Date.now()}-${Math.random().toString().slice(-4)}`,
+            title,
+            body,
+            timestamp: new Date(),
+            data: orderData
+          };
+
+          setNotifications((prev) => [newAlert, ...prev]);
+
+          // Trigger double-tone Web Audio alarm
+          playAlertSound();
+
+          // Native service / window notification API trigger
+          if (Notification.permission === "granted") {
+            try {
+              new Notification(newAlert.title, {
+                body: newAlert.body,
+                icon: "/assets/icon_192.png",
+                dir: "rtl"
+              });
+            } catch (err) {
+              console.warn("Browser native Notification prompt failed: ", err);
+            }
+          }
+        }
+      });
+    }, (error) => {
+      console.error("Error with real-time orders listening subscription: ", error);
+    });
+
+    return () => {
+      unsubscribe();
     };
   }, [playAlertSound]);
 
